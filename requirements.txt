@@ -1,0 +1,23 @@
+# Core data processing and baseline models
+numpy==2.4.6
+pandas==3.0.3
+scipy==1.17.1
+scikit-learn==1.8.0
+joblib==1.5.3
+
+# Deep learning classifier
+# Install PyTorch separately according to your CPU/CUDA environment.
+
+transformers==5.9.0
+accelerate==1.13.0
+
+# Configuration and utilities
+PyYAML==6.0.3
+tqdm==4.67.3
+python-dotenv==1.2.2
+
+# OpenAI-compatible SJTU API client
+openai==2.38.0
+
+# Lightweight interactive demo
+gradio==6.15.2
