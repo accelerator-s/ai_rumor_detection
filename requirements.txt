@@ -1,4 +1,4 @@
-# Core data processing and baseline models
+# Core data processing and retrieval
 numpy==2.4.6
 pandas==3.0.3
 scipy==1.17.1

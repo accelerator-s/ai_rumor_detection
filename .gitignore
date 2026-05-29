@@ -1,0 +1,30 @@
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local environments
+.venv/
+venv/
+.env
+
+# Generated model artifacts
+outputs/checkpoints/
+outputs/predictions/
+outputs/metrics/
+
+# Downloaded pretrained models
+models/pretrained/*
+!models/pretrained/.gitkeep
+
+# Trained model binary artifacts
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+*.onnx
+
+# OS/editor files
+.DS_Store
+.idea/
+.vscode/
