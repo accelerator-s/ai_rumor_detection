@@ -85,6 +85,7 @@ WebUI 作为独立的交互展示层，调用后端预测接口，展示单条�
 
 界面需要实现以下展示内容：
 
+- **大模型配置区**：填写 OpenAI 兼容接口的 Base URL 和 API Key，自动获取可用模型列表并选择模型；
 - **文本输入区**：提供推文文本输入框、提交按钮和示例文本入口；
 - **预测结果区**：展示预测标签、谣言概率、非谣言概率、置信度和模型名称；
 - **解释依据区**：展示自然语言判断依据，并区分模型证据、输入文本片段和相似案例参考；
@@ -92,6 +93,8 @@ WebUI 作为独立的交互展示层，调用后端预测接口，展示单条�
 - **相似案例区**：展示 Top-K 相似训练样本，包括样本文本、标签和相似度；
 - **请求状态区**：展示模型是否已加载、后端服务是否可用、预测耗时和错误信息；
 - **结果导出区**：支持复制或保存当前预测结果，便于写入实验记录和报告。
+
+大模型配置保存到 `configs/webui_llm.local.yaml`，该文件已加入 `.gitignore`，不提交到仓库。`configs/default.yaml` 只保存训练、评估和路径相关配置。
 
 ## 计划目录结构
 
@@ -136,26 +139,19 @@ WebUI 作为独立的交互展示层，调用后端预测接口，展示单条�
 │   │   └── templates.py           # 不同解释模式的模板
 │   ├── train.py                   # 训练入口
 │   ├── evaluate.py                # val.csv 与事件维度评测入口
-│   └── predict.py                 # 单条文本预测入口
-├── webui/
-│   ├── backend/
-│   │   ├── main.py                # 创建应用实例、注册路由、启动服务
-│   │   ├── routes.py              # 定义 /health、/predict、/explain 等 HTTP 路由
-│   │   ├── schemas.py             # 定义请求体、响应体和错误响应的数据结构
-│   │   ├── services.py            # 编排预测请求：参数校验、调用 pipeline、整理响应
-│   │   ├── state.py               # 服务启动时加载并缓存模型、检索器、解释器
-│   │   └── errors.py              # 统一异常类型、错误码和错误信息
-│   └── frontend/
-│       ├── app.py                 # 前端启动入口，负责页面装配
-│       ├── api.py                 # 封装对后端 /predict、/health 等接口的请求
-│       ├── components/
-│       │   ├── layout.py          # 页面整体布局、标题区和主内容区域
-│       │   ├── input_panel.py     # 文本输入框、提交按钮、示例文本入口
-│       │   ├── prediction_panel.py  # 分类标签、置信度和模型类型展示
-│       │   ├── explanation_panel.py # 判断依据文本和关键证据展示
-│       │   ├── cases_panel.py     # Top-K 相似案例列表
-│       │   └── status_panel.py    # 加载状态、错误信息和服务健康状态
-│       └── formatters.py          # 标签、置信度、解释文本和错误信息的展示格式化
+│   ├── predict.py                 # 单条文本预测入口
+│   └── webui/
+│       ├── main.py                # 一次启动后端服务和前端界面
+│       ├── backend/
+│       │   ├── routes.py          # /health、/predict、/explain、/llm/* 路由
+│       │   ├── services.py        # 参数校验、pipeline 调用和配置读写
+│       │   ├── state.py           # 服务启动时加载并缓存 pipeline
+│       │   └── errors.py          # 统一异常类型
+│       └── frontend/
+│           ├── interface.py       # Gradio 界面和事件注册
+│           ├── api.py             # 后端接口请求封装
+│           ├── components/        # 页面区域定义
+│           └── formatters.py      # 展示格式化
 ├── outputs/
 │   ├── checkpoints/               # 模型权重和 tokenizer 文件
 │   ├── metrics/                   # 评测结果 JSON/CSV
@@ -214,12 +210,11 @@ python -m src.evaluate --config configs/default.yaml --split val
 # 单条文本预测
 python -m src.predict --text "input tweet here"
 
-# 启动后端服务
-python -m webui.backend.main
-
-# 启动交互界面
-python -m webui.frontend.app
+# 启动 WebUI
+python -m src.webui.main
 ```
+
+WebUI 后端提供 `/llm/config` 和 `/llm/models` 路由，用于保存本地大模型配置和拉取模型列表。
 
 ## 评测指标
 

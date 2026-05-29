@@ -7,11 +7,15 @@ __pycache__/
 .venv/
 venv/
 .env
+configs/webui_llm.local.yaml
 
 # Generated model artifacts
-outputs/checkpoints/
-outputs/predictions/
-outputs/metrics/
+outputs/checkpoints/*
+outputs/predictions/*
+outputs/metrics/*
+!outputs/checkpoints/.gitkeep
+!outputs/predictions/.gitkeep
+!outputs/metrics/.gitkeep
 
 # Downloaded pretrained models
 models/pretrained/*
