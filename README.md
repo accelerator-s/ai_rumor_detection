@@ -24,14 +24,25 @@
 
 ### 1. 文本预处理与归一化
 
-推文文本包含 URL、用户提及、转发标记、话题标签、HTML 转义字符等噪声。预处理模块会进行统一归一化：
+通过`src/data/preprocess.py`实现。后续需要参考 BERTweet 的预训练方式，对训练、验证和在线输入统一执行：
 
-- 将 URL、用户提及、转发标记归一为稳定占位符；
-- 处理 HTML 转义字符；
-- 保留否定词、情绪词、标点和话题标签中的有效语义；
-- 构造“原始文本视图”和“归一化文本视图”，减少模型对单一事件实体的依赖。
+- 还原 HTML 转义字符，统一空白和特殊标点；
+- 删除开头的 `RT`，将 URL 和用户提及分别归一为 `HTTPURL`、`@USER`；
+- 将 emoji 转写为语义标记，例如 `😢` 转为 `:crying_face:`，而不是直接过滤；
+- 保留否定词、大小写、话题标签和有意义的标点；
+- 检查重复文本、标签冲突以及训练集与验证集之间的重复样本。
 
-归一化文本视图不会简单删除所有实体信息，而是对强事件绑定的片段进行规范化。这样既避免模型死记硬背具体事件，也尽量保留谣言检测所需的语义线索。
+例如，`data/train.csv` 中的：
+
+```text
+#Ferguson PD beat, &amp; charged innocent man with "Property Damage" for bleeding on officer's clothes @YourAnonNews  http://t.co/cdyvEIzZRw
+```
+
+预期归一化为：
+
+```text
+#Ferguson PD beat, & charged innocent man with "Property Damage" for bleeding on officer's clothes @USER HTTPURL
+```
 
 ### 2. 分类模型
 
