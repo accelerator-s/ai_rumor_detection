@@ -1,0 +1,12 @@
+.single-export {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding: 15px;
+}
+
+.single-export__msg {
+  color: var(--fg-soft);
+  font-size: 0.78rem;
+}

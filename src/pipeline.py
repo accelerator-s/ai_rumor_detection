@@ -16,6 +16,7 @@ class RumorPipeline:
         self.config = config
         self.with_explainer = with_explainer
         self.classifier = create_classifier(config)
+        self.classifier.load()
         train_csv = config.get("paths", {}).get("train_csv")
         self.retriever = TfidfRetriever(read_examples(train_csv)) if train_csv else None
 

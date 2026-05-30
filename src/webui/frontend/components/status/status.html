@@ -1,0 +1,65 @@
+<section class="status">
+  <div class="status__dashboard card">
+    <div class="status__hero">
+      <div class="status__hero-copy">
+        <span class="status__eyebrow">Service Monitor</span>
+        <h2>服务运行状态</h2>
+        <p>集中查看后端连接、分类模型与解释配置的实时状态。</p>
+      </div>
+    </div>
+
+    <div class="status__content">
+      <div class="status__score" aria-label="服务就绪度">
+        <svg class="status__ring" viewBox="0 0 120 120" role="img" aria-label="服务就绪度图表">
+          <circle class="status__ring-track" cx="60" cy="60" r="48"></circle>
+          <circle class="status__ring-value" cx="60" cy="60" r="48" data-readiness-ring></circle>
+        </svg>
+        <div class="status__score-text">
+          <strong data-readiness-value>0%</strong>
+          <span>就绪度</span>
+        </div>
+      </div>
+
+      <div class="status__metrics">
+        <article class="status__metric">
+          <span class="status__metric-label">后端连接</span>
+          <strong data-backend-state>检测中</strong>
+          <div class="status__bar"><span data-backend-bar></span></div>
+        </article>
+        <article class="status__metric">
+          <span class="status__metric-label">分类模型接入</span>
+          <strong data-classifier-state>检测中</strong>
+          <div class="status__bar"><span data-classifier-bar></span></div>
+        </article>
+        <article class="status__metric">
+          <span class="status__metric-label">解释模型接入</span>
+          <strong data-explain-state>检测中</strong>
+          <div class="status__bar"><span data-explain-bar></span></div>
+        </article>
+      </div>
+    </div>
+  </div>
+
+  <div class="status__grid">
+    <article class="status__card status__card--wide card">
+      <div class="status__card-head">
+        <span class="icon" data-icon="robot"></span>
+        <h3>解释模型接入</h3>
+      </div>
+      <div class="status__info-grid">
+        <div><span>模型</span><strong data-llm-model>未配置</strong></div>
+        <div><span>服务地址</span><strong data-llm-base>未配置</strong></div>
+        <div><span>访问密钥</span><strong data-llm-key>未配置</strong></div>
+        <div><span>生成随机度</span><strong data-llm-temp>—</strong></div>
+      </div>
+    </article>
+
+    <article class="status__card status__card--wide card">
+      <div class="status__card-head">
+        <span class="icon" data-icon="bulb"></span>
+        <h3>诊断信息</h3>
+      </div>
+      <div class="status__diagnostic" data-diagnostic>正在等待后端健康检查结果。</div>
+    </article>
+  </div>
+</section>

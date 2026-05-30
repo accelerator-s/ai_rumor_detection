@@ -90,22 +90,31 @@
 
 解释文本通过 SJTU API 的 OpenAI 兼容接口调用大语言模型生成。大语言模型只负责组织表达，不直接决定分类标签。最终解释应围绕可观察证据展开，避免把相似案例描述成外部事实证据。
 
-### 6. WebUI 展示内容
+### 6. WebUI 展示与模型衔接
 
-WebUI 作为独立的交互展示层，调用后端预测接口，展示单条输入文本的检测结果、解释依据和服务状态。
+WebUI 是纯静态 SPA 展示层，调用本地后端接口组织单条检测、批量评测、大模型配置和服务状态四类能力：
 
-界面需要实现以下展示内容：
+- **单条检测**：支持“仅分类”或“检测并解释”，展示分类标签、置信度、关键证据词、Top-K 相似案例和 JSON 导出；
+- **批量评测**：导入包含 `text` 列的 CSV，后端逐条分类并返回结果；存在 `label` 列时同步展示 Accuracy、Precision、Recall、F1、混淆矩阵、分布统计和错误明细；
+- **大模型配置**：保存 OpenAI 兼容接口的 Base URL、API Key、模型和温度到 `configs/explain_llm.local.yaml`，供 CLI 和 WebUI 的解释生成共同使用；若旧版 `configs/webui_llm.local.yaml` 仍存在且新文件不存在，会继续兼容读取；
+- **服务状态**：以监控面板展示后端连接、分类模型和解释配置的就绪情况；模型权重未加载时禁用单条和批量操作。
 
-- **大模型配置区**：填写 OpenAI 兼容接口的 Base URL 和 API Key，自动获取可用模型列表并选择模型；
-- **文本输入区**：提供推文文本输入框、提交按钮和示例文本入口；
-- **预测结果区**：展示预测标签、谣言概率、非谣言概率、置信度和模型名称；
-- **解释依据区**：展示自然语言判断依据，并区分模型证据、输入文本片段和相似案例参考；
-- **关键证据区**：展示对预测贡献较高的 token、短语或文本片段；
-- **相似案例区**：展示 Top-K 相似训练样本，包括样本文本、标签和相似度；
-- **请求状态区**：展示模型是否已加载、后端服务是否可用、预测耗时和错误信息；
-- **结果导出区**：支持复制或保存当前预测结果，便于写入实验记录和报告。
+后端启动时通过 `configs/default.yaml` 自动衔接训练权重：`src.cli.train` 默认把最佳 checkpoint 保存到 `outputs/checkpoints/best`，`src.webui.main` 启动后从 `paths.checkpoint_dir` 查找最新的 `best*` 目录并缓存为 `RumorPipeline`。默认需要保留这些文件：
 
-大模型配置保存到 `configs/webui_llm.local.yaml`，该文件已加入 `.gitignore`，不提交到仓库。`configs/default.yaml` 只保存训练、评估和路径相关配置。
+```text
+configs/default.yaml
+models/pretrained/                 # 初始预训练模型
+outputs/checkpoints/best/          # 训练后的最佳分类 checkpoint
+├── config.json
+├── model.safetensors              # 或 pytorch_model.bin，二者至少一个
+├── tokenizer.json / vocab.* 等
+data/train.csv                     # 相似案例检索数据
+data/val.csv                       # 可选，批量评测数据
+```
+
+如需切换权重目录，修改 `paths.checkpoint_dir`，并保证其中存在名称以 `best` 开头且包含 `config.json` 与权重文件的 checkpoint 子目录。批量评测只调用分类器，不执行相似案例检索和大模型解释；`data/val.csv` 约 401 条样本，GPU 通常为秒级，CPU 通常为数十秒量级，实际耗时以接口返回的 `elapsed_ms` 为准。
+
+WebUI 和脚本评测共同关注分类指标与解释质量：分类指标包括 Accuracy、Precision、Recall、F1、按 `event` 的错误分析和推理耗时；解释质量关注解释是否与预测标签一致、是否引用输入文本证据、是否区分模型证据/相似案例/事实结论，并避免无依据扩写。
 
 ## 计划目录结构
 
@@ -127,6 +136,9 @@ WebUI 作为独立的交互展示层，调用后端预测接口，展示单条�
 │   ├── interfaces.py              # Classifier、Retriever、Explainer 等接口定义
 │   ├── config.py                  # 配置读取、默认值合并和路径检查
 │   ├── pipeline.py                # 端到端预测流程编排
+│   ├── core/
+│   │   ├── batch.py                  # 批量 CSV 分类、指标和混淆矩阵核心逻辑
+│   │   └── llm.py                    # 解释模型配置路径、模型列表获取和连接测试核心工具
 │   ├── data/
 │   │   ├── dataset.py             # Dataset/DataLoader 与 CSV 读取
 │   │   ├── preprocess.py          # 文本清洗、URL/用户提及归一化
@@ -148,21 +160,34 @@ WebUI 作为独立的交互展示层，调用后端预测接口，展示单条�
 │   │   ├── generator.py           # 解释文本生成入口
 │   │   ├── llm_client.py          # OpenAI 兼容接口封装
 │   │   └── templates.py           # 不同解释模式的模板
-│   ├── train.py                   # 训练入口
-│   ├── evaluate.py                # val.csv 与事件维度评测入口
-│   ├── predict.py                 # 单条文本预测入口
+│   ├── cli/
+│   │   ├── train.py                 # 训练命令行入口
+│   │   ├── evaluate.py              # val.csv 与事件维度评测命令行入口
+│   │   └── predict.py               # 单条文本预测命令行入口
 │   └── webui/
 │       ├── main.py                # 一次启动后端服务和前端界面
 │       ├── backend/
-│       │   ├── routes.py          # /health、/predict、/explain、/llm/* 路由
-│       │   ├── services.py        # 参数校验、pipeline 调用和配置读写
+│       │   ├── routes.py          # /health、/predict、/explain、/batch、/llm/* 与静态资源
+│       │   ├── services/          # 后端服务目录，按接口职责拆分业务逻辑
+│       │   │   ├── __init__.py    # 汇总服务接口，供 routes.py 统一调用
+│       │   │   ├── health.py      # 服务状态与模型可用性检查
+│       │   │   ├── prediction.py  # 单条检测与解释请求适配
+│       │   │   ├── batch.py       # 批量评测请求适配，复用 src.core.batch
+│       │   │   └── llm.py         # 大模型配置接口适配，复用 src.core.llm
 │       │   ├── state.py           # 服务启动时加载并缓存 pipeline
 │       │   └── errors.py          # 统一异常类型
 │       └── frontend/
-│           ├── interface.py       # Gradio 界面和事件注册
-│           ├── api.py             # 后端接口请求封装
-│           ├── components/        # 页面区域定义
-│           └── formatters.py      # 展示格式化
+│           ├── index.html          # SPA 外壳
+│           ├── app.js              # 启动器：主题、组件加载、路由、事件总线
+│           ├── core/               # api/bus/health/icons/theme 与 base/theme 样式
+│           ├── components/
+│           │   ├── single/         # 单条输入、结果、依据、案例和导出步骤
+│           │   ├── batch/          # 批量上传、指标、图表、明细和报告步骤
+│           │   ├── stepper/        # 两条工作流共用的竖向步进器
+│           │   ├── state-card/     # 空态、加载态和错误态卡片
+│           │   ├── config/         # 大模型配置与主题化下拉框
+│           │   └── status/         # 服务状态监控面板
+│           └── resources/          # favicon 与 currentColor SVG 图标等静态资源
 ├── outputs/
 │   ├── checkpoints/               # 模型权重和 tokenizer 文件
 │   ├── metrics/                   # 评测结果 JSON/CSV
@@ -182,6 +207,7 @@ WebUI 作为独立的交互展示层，调用后端预测接口，展示单条�
 - 训练、评测、预测和解释流程应能分别独立运行，也能在端到端入口中组合调用；
 - 训练模块只负责参数更新，评估模块只负责指标统计，解释模块只负责组织预测依据，三者通过模型输出和结构化结果连接；
 - 配置项集中放在 `configs/` 中，避免在多个脚本中散落硬编码参数；
+- CLI 与 WebUI 是两个独立的接口层，不应互相导入业务逻辑；可复用逻辑接口放在 `src/core/` 或已有共享模块中，再由两个接口层分别适配；
 - 对外部模型接口和本地模型推理做封装，避免业务代码直接依赖具体 API 调用细节。
 
 ## 运行方式
@@ -213,34 +239,17 @@ snapshot_download(
 PY
 
 # 训练分类模型
-python -m src.train --config configs/default.yaml
+python -m src.cli.train --config configs/default.yaml
 
 # 在 val.csv 上评测
-python -m src.evaluate --config configs/default.yaml --split val
+python -m src.cli.evaluate --config configs/default.yaml --split val
 
 # 单条文本预测
-python -m src.predict --text "input tweet here"
+python -m src.cli.predict --text "input tweet here"
+
+# 解释模型配置
+# CLI 与 WebUI 共用 configs/explain_llm.local.yaml；旧版 configs/webui_llm.local.yaml 仅作为兼容读取 fallback。
 
 # 启动 WebUI
 python -m src.webui.main
 ```
-
-WebUI 后端提供 `/llm/config` 和 `/llm/models` 路由，用于保存本地大模型配置和拉取模型列表。
-
-## 评测指标
-
-分类性能：
-
-- Accuracy：总体预测正确的比例，对应作业评分中的 `val.csv` 分类准确率；
-- Precision：模型预测为谣言的样本中，实际真的是谣言的比例，用于观察误报情况；
-- Recall：所有真实谣言样本中，被模型成功找出的比例，用于观察漏报情况；
-- F1：Precision 和 Recall 的综合指标，适合在类别不均衡时辅助判断模型效果；
-- Per-event metrics：按 `event` 分组统计指标，用于分析模型在哪些事件上更容易出错；
-- Inference time：单条或批量预测耗时，用于说明运行时间是否合理。
-
-解释质量：
-
-- 是否与模型预测标签一致；
-- 是否引用了输入文本中的具体证据；
-- 是否区分“模型证据”“相似案例”和“事实结论”；
-- 是否避免无依据扩写。

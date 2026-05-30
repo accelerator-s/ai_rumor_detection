@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 import argparse
-import threading
 from http.server import ThreadingHTTPServer
 
 from src.webui.backend.routes import Handler
 from src.webui.backend.state import state
-from src.webui.frontend.api import BackendClient
-from src.webui.frontend.interface import create_interface
 
 
 def main() -> None:
@@ -20,13 +17,15 @@ def main() -> None:
 
     state.load(args.config, with_explainer=not args.no_explain)
     server = ThreadingHTTPServer((args.host, args.port), Handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
 
-    backend_url = f"http://{args.host}:{args.port}"
-    create_interface(BackendClient(backend_url)).launch()
+    print(f"WebUI 已启动：http://{args.host}:{args.port}")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
 
 
 if __name__ == "__main__":
     main()
-

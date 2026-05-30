@@ -1,0 +1,70 @@
+.batch-upload {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+}
+
+.batch-upload__drop {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  padding: 24px 18px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-soft);
+  color: var(--fg-soft);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.batch-upload__drop:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.batch-upload__drop .icon {
+  width: 28px;
+  height: 28px;
+  color: var(--accent);
+}
+
+.batch-upload__drop strong {
+  color: var(--fg);
+}
+
+.batch-upload__drop span:last-of-type,
+.batch-upload__note,
+.batch-upload__file,
+.batch-upload__gate,
+.batch-upload__busy {
+  font-size: 0.8rem;
+}
+
+.batch-upload__drop input {
+  display: none;
+}
+
+.batch-upload__file {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.batch-upload__note {
+  color: var(--fg-soft);
+}
+
+.batch-upload__gate {
+  padding: 9px 11px;
+  border: 1px solid color-mix(in srgb, var(--rumor) 30%, transparent);
+  border-radius: var(--radius-sm);
+  background: var(--rumor-soft);
+  color: var(--rumor);
+}
+
+.batch-upload__actions,
+.batch-upload__busy {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}

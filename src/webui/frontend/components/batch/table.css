@@ -1,0 +1,36 @@
+.batch-table {
+  overflow-x: auto;
+}
+
+.batch-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.batch-table th,
+.batch-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.batch-table th {
+  color: var(--fg-soft);
+  font-weight: 650;
+}
+
+.batch-table td:nth-child(2) {
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.batch-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.batch-table tr.is-wrong {
+  background: color-mix(in srgb, var(--rumor-soft) 68%, transparent);
+}

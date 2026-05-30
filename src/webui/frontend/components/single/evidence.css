@@ -1,0 +1,38 @@
+.single-evidence {
+  padding: 20px 22px;
+}
+
+.single-evidence__reason {
+  color: var(--fg);
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+.single-evidence__head {
+  margin: 18px 0 10px;
+  color: var(--fg-soft);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.single-evidence__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.single-evidence__chip {
+  display: inline-flex;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  animation: chipIn var(--dur) var(--ease) backwards;
+}
+
+.single-evidence__chip span {
+  color: var(--fg-faint);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}

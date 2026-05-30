@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>可解释谣言检测</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <link rel="stylesheet" href="/core/theme.css" />
+    <link rel="stylesheet" href="/core/base.css" />
+    <link rel="stylesheet" href="/components/rail/rail.css" />
+    <link rel="stylesheet" href="/components/topbar/topbar.css" />
+    <link rel="stylesheet" href="/components/stepper/stepper.css" />
+    <link rel="stylesheet" href="/components/state-card/state-card.css" />
+    <link rel="stylesheet" href="/components/single/single.css" />
+    <link rel="stylesheet" href="/components/single/input.css" />
+    <link rel="stylesheet" href="/components/single/result.css" />
+    <link rel="stylesheet" href="/components/single/evidence.css" />
+    <link rel="stylesheet" href="/components/single/cases.css" />
+    <link rel="stylesheet" href="/components/single/export.css" />
+    <link rel="stylesheet" href="/components/batch/batch.css" />
+    <link rel="stylesheet" href="/components/batch/upload.css" />
+    <link rel="stylesheet" href="/components/batch/metrics.css" />
+    <link rel="stylesheet" href="/components/batch/charts.css" />
+    <link rel="stylesheet" href="/components/batch/table.css" />
+    <link rel="stylesheet" href="/components/batch/report.css" />
+    <link rel="stylesheet" href="/components/config/config.css" />
+    <link rel="stylesheet" href="/components/status/status.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="rail"></div>
+      <div id="content-root">
+        <div id="topbar"></div>
+        <main class="content-body" id="content"></main>
+      </div>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

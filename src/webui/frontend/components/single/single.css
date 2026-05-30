@@ -1,0 +1,66 @@
+.single {
+  display: grid;
+  grid-template-columns: 184px minmax(0, 1fr);
+  gap: clamp(16px, 2vw, 24px);
+  width: 100%;
+  max-width: 1160px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+.single__steps {
+  position: sticky;
+  top: 0;
+  align-self: start;
+}
+
+.single__steps-inner {
+  padding: 4px 0;
+}
+
+.single__flow {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.single__step:empty {
+  display: none;
+}
+
+.workflow-section {
+  animation: paneIn var(--dur) var(--ease);
+}
+
+.workflow-section__head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 10px;
+}
+
+.workflow-section__head .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+}
+
+.workflow-section__head h2 {
+  font-size: 1rem;
+}
+
+.workflow-section__sub {
+  color: var(--fg-soft);
+  font-size: 0.84rem;
+  margin: -4px 0 12px;
+}
+
+@media (max-width: 760px) {
+  .single {
+    grid-template-columns: 1fr;
+  }
+  .single__steps {
+    position: static;
+  }
+}

@@ -18,6 +18,3 @@ python-dotenv==1.2.2
 
 # OpenAI-compatible SJTU API client
 openai==2.38.0
-
-# Lightweight interactive demo
-gradio==6.15.2

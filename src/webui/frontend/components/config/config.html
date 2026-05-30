@@ -1,0 +1,83 @@
+<section class="config">
+  <div class="config__layout">
+    <div class="config__card card">
+      <div class="config__field">
+        <label class="field-label" for="cfg-base">服务地址（Base URL）</label>
+        <input class="input" id="cfg-base" type="url" placeholder="https://example.com/v1" />
+      </div>
+
+      <div class="config__field">
+        <label class="field-label" for="cfg-key">访问密钥（API Key）</label>
+        <input class="input" id="cfg-key" type="password" placeholder="留空则不修改已保存的密钥" autocomplete="off" />
+      </div>
+
+      <div class="config__field">
+        <label class="field-label" for="cfg-model-trigger">解释模型</label>
+        <div class="config__model-row">
+          <div class="config-select" id="cfg-model" data-select>
+            <button class="config-select__trigger" id="cfg-model-trigger" type="button" data-select-trigger
+              aria-haspopup="listbox" aria-expanded="false">
+              <span data-select-value>（先获取模型列表）</span>
+              <span class="config-select__chevron" aria-hidden="true">⌄</span>
+            </button>
+            <div class="config-select__list" data-select-list role="listbox" hidden></div>
+          </div>
+          <button class="btn btn--ghost" type="button" data-action="fetch-models">
+            <span class="icon" data-icon="refresh"></span>获取列表
+          </button>
+        </div>
+      </div>
+
+      <div class="config__field config__temperature">
+        <div class="config__temperature-head">
+          <label class="field-label" for="cfg-temp">生成随机度（Temperature）</label>
+          <span class="config__temperature-value" data-temp-val>0.0</span>
+        </div>
+        <input class="config__slider" id="cfg-temp" type="range" min="0" max="2" step="0.1" value="0" />
+        <div class="config__slider-scale"><span>稳定</span><span>灵活</span></div>
+      </div>
+
+      <div class="config__actions">
+        <button class="btn btn--secondary" type="button" data-action="test">
+          <span class="icon" data-icon="wrench"></span>测试连接
+        </button>
+        <button class="btn btn--primary" type="button" data-action="save">
+          <span class="icon" data-icon="send"></span>保存配置
+        </button>
+        <div class="config__actions-status">
+          <span class="config__busy" data-test-busy hidden><span class="spinner"></span></span>
+          <span class="config__busy" data-busy hidden><span class="spinner"></span></span>
+          <span class="config__msg" data-msg hidden></span>
+          <span class="config__msg" data-test-msg hidden></span>
+        </div>
+      </div>
+      <div class="config__test-out" data-test-out hidden></div>
+    </div>
+
+    <aside class="config__aside">
+      <article class="config__aside-card card">
+        <div class="config__aside-head">
+          <span class="icon" data-icon="bulb"></span>
+          <h3>接入说明</h3>
+        </div>
+        <p>解释服务只在“检测并解释”时使用，不会影响分类结果，也不会参与批量评测。</p>
+        <ol>
+          <li>填写服务地址和访问密钥</li>
+          <li>获取列表并选择解释模型</li>
+          <li>保存后返回单条检测页面</li>
+        </ol>
+      </article>
+
+      <article class="config__aside-card config__aside-card--soft card">
+        <div class="config__aside-head">
+          <span class="icon" data-icon="bulb"></span>
+          <h3>参数说明</h3>
+        </div>
+        <div class="config__fact">
+          <strong>生成随机度</strong>
+          <span>数值越低，解释越稳定；数值越高，表达会更灵活。</span>
+        </div>
+      </article>
+    </aside>
+  </div>
+</section>

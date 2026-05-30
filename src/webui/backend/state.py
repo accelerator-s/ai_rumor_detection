@@ -14,8 +14,7 @@ class AppState:
             self.error = None
         except Exception as exc:
             self.pipeline = None
-            self.error = str(exc)
+            self.error = str(exc).strip() or "服务初始化失败。请检查模型文件、运行环境和配置后重试。"
 
 
 state = AppState()
-

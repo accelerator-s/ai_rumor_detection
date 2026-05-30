@@ -27,12 +27,20 @@ class BertweetClassifier:
             import torch
             from transformers import AutoModelForSequenceClassification, AutoTokenizer
         except ImportError as exc:
-            raise RuntimeError("Install torch and transformers before loading the classifier.") from exc
+            raise RuntimeError("运行环境缺少 PyTorch 或 transformers，无法加载分类模型。请先安装项目依赖。") from exc
 
         self._torch = torch
         self.device = torch.device(self.device_name or ("cuda" if torch.cuda.is_available() else "cpu"))
-        self._tokenizer = AutoTokenizer.from_pretrained(str(self.model_path), use_fast=False)
-        self._model = AutoModelForSequenceClassification.from_pretrained(str(self.model_path), num_labels=2)
+        try:
+            self._tokenizer = AutoTokenizer.from_pretrained(str(self.model_path), use_fast=False)
+        except Exception as exc:
+            raise RuntimeError(
+                "分词器加载失败。请检查本地预训练模型文件是否完整，并安装 sentencepiece 或 tiktoken 后重试。"
+            ) from exc
+        try:
+            self._model = AutoModelForSequenceClassification.from_pretrained(str(self.model_path), num_labels=2)
+        except Exception as exc:
+            raise RuntimeError("分类模型权重加载失败。请先完成训练，或检查模型文件路径。") from exc
         self._model.to(self.device)
         self._model.eval()
 
@@ -59,4 +67,3 @@ class BertweetClassifier:
             model_name=self.model_name,
             text=text,
         )
-

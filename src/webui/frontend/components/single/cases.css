@@ -1,0 +1,52 @@
+.single-cases {
+  display: grid;
+  gap: 11px;
+}
+
+.single-cases__item,
+.single-cases__empty {
+  padding: 15px 17px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  animation: popIn var(--dur) var(--ease) backwards;
+}
+
+.single-cases__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--fg-faint);
+  font-size: 0.74rem;
+}
+
+.single-cases__meta b {
+  margin-left: auto;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.single-cases__badge {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.single-cases__badge.is-safe {
+  background: var(--safe-soft);
+  color: var(--safe);
+}
+
+.single-cases__badge.is-rumor {
+  background: var(--rumor-soft);
+  color: var(--rumor);
+}
+
+.single-cases__item p,
+.single-cases__empty {
+  color: var(--fg-soft);
+  font-size: 0.86rem;
+  line-height: 1.65;
+}

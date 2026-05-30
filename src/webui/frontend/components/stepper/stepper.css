@@ -1,0 +1,167 @@
+.stepper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px 2px;
+}
+
+.stepper__item {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 12px;
+  min-height: 58px;
+}
+
+.stepper__rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stepper__dot {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--fg-faint);
+  font-size: 0.74rem;
+  font-weight: 700;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.stepper__check {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.stepper__check svg {
+  width: 15px;
+  height: 15px;
+}
+
+.stepper__line {
+  flex: 1;
+  width: 2px;
+  margin: 4px 0;
+  background: var(--border);
+  border-radius: 2px;
+  transition: background var(--dur) var(--ease);
+}
+
+.stepper__body {
+  padding-top: 2px;
+  min-width: 0;
+}
+
+.stepper__label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--fg-soft);
+  transition: color var(--dur) var(--ease);
+}
+
+.stepper__hint {
+  font-size: 0.76rem;
+  color: var(--fg-faint);
+  margin-top: 2px;
+}
+
+/* ---- idle (default) ---- */
+
+.stepper__item.is-idle .stepper__num {
+  display: inline;
+}
+
+/* ---- active: breathing light ---- */
+
+.stepper__item.is-active .stepper__dot {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+  animation: breathe 1.8s var(--ease) infinite;
+}
+
+.stepper__item.is-active .stepper__label {
+  color: var(--accent-strong);
+}
+
+/* ---- done: filled + check + pop ---- */
+
+.stepper__item.is-done .stepper__dot {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-fg);
+  animation: pop 360ms var(--ease);
+}
+
+.stepper__item.is-done .stepper__num {
+  display: none;
+}
+
+.stepper__item.is-done .stepper__check {
+  display: inline-flex;
+}
+
+.stepper__item.is-done .stepper__line {
+  background: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+
+.stepper__item.is-done .stepper__label {
+  color: var(--fg);
+}
+
+/* ---- error: red pulse ---- */
+
+.stepper__item.is-error .stepper__dot {
+  border-color: var(--rumor);
+  color: var(--rumor);
+  background: var(--rumor-soft);
+  animation: stepperPulseError 1.4s var(--ease) infinite;
+}
+
+.stepper__item.is-error .stepper__label {
+  color: var(--rumor);
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+  }
+  55% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes stepperPulseError {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--rumor) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--rumor) 0%, transparent);
+  }
+}

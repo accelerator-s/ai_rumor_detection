@@ -1,0 +1,13 @@
+.batch-report {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding: 15px;
+}
+
+.batch-report > span {
+  flex: 1 1 240px;
+  color: var(--fg-soft);
+  font-size: 0.82rem;
+}

@@ -1,0 +1,128 @@
+.single-result {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 24px;
+  padding: 22px;
+  align-items: center;
+}
+
+.single-result__donut {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.single-result__ring {
+  width: 148px;
+  height: 148px;
+}
+
+.single-result__track-ring,
+.single-result__value-ring {
+  fill: none;
+  stroke-width: 10;
+}
+
+.single-result__track-ring {
+  stroke: var(--surface-2);
+}
+
+.single-result__value-ring {
+  stroke: var(--safe);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 850ms var(--ease);
+}
+
+.single-result.is-rumor .single-result__value-ring {
+  stroke: var(--rumor);
+}
+
+.single-result__pct {
+  fill: var(--fg);
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.single-result__pct-sub {
+  fill: var(--fg-soft);
+  font-size: 0.7rem;
+  text-anchor: middle;
+}
+
+.single-result__badge {
+  padding: 4px 13px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.single-result__badge.is-safe {
+  background: var(--safe-soft);
+  color: var(--safe);
+}
+
+.single-result__badge.is-rumor {
+  background: var(--rumor-soft);
+  color: var(--rumor);
+}
+
+.single-result__bars {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.single-result__bar-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  color: var(--fg-soft);
+  font-size: 0.84rem;
+}
+
+.single-result__bar-head .value,
+.single-result__meta {
+  font-variant-numeric: tabular-nums;
+}
+
+.single-result__track {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.single-result__fill {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 780ms var(--ease);
+}
+
+.single-result__fill.is-safe {
+  background: var(--safe);
+}
+
+.single-result__fill.is-rumor {
+  background: var(--rumor);
+}
+
+.single-result__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding-top: 5px;
+  color: var(--fg-soft);
+  font-size: 0.78rem;
+}
+
+.single-result__meta b {
+  color: var(--fg);
+}
+
+@media (max-width: 620px) {
+  .single-result {
+    grid-template-columns: 1fr;
+  }
+}

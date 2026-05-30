@@ -1,0 +1,36 @@
+.batch {
+  display: grid;
+  grid-template-columns: 184px minmax(0, 1fr);
+  gap: clamp(16px, 2vw, 24px);
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+.batch__steps {
+  position: sticky;
+  top: 0;
+  align-self: start;
+}
+
+.batch__flow {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.batch__flow > section:empty {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .batch {
+    grid-template-columns: 1fr;
+  }
+
+  .batch__steps {
+    position: static;
+  }
+}

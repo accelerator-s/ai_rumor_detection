@@ -1,22 +1,19 @@
 from __future__ import annotations
 
-import os
-
-
 class OpenAICompatibleClient:
     def __init__(self, model: str, base_url: str | None = None, api_key: str | None = None) -> None:
         try:
             from openai import OpenAI
         except ImportError as exc:
-            raise RuntimeError("Install openai before generating explanations.") from exc
+            raise RuntimeError("运行环境缺少接口客户端依赖，暂时无法生成解释。") from exc
 
-        self.model = model or os.getenv("SJTU_MODEL", "")
+        self.model = model
         if not self.model:
-            raise RuntimeError("Select an explanation model in WebUI first.")
+            raise RuntimeError("请先在“大模型配置”页面选择用于生成解释的模型。")
 
         self.client = OpenAI(
-            api_key=api_key or os.getenv("SJTU_API_KEY"),
-            base_url=base_url or os.getenv("SJTU_BASE_URL"),
+            api_key=api_key,
+            base_url=base_url
         )
 
     def complete(self, system: str, user: str, temperature: float = 0.2) -> str:

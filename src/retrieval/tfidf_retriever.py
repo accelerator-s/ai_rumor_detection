@@ -10,7 +10,7 @@ class TfidfRetriever:
             from sklearn.feature_extraction.text import TfidfVectorizer
             from sklearn.neighbors import NearestNeighbors
         except ImportError as exc:
-            raise RuntimeError("Install scikit-learn before using retrieval.") from exc
+            raise RuntimeError("运行环境缺少 scikit-learn，无法加载相似案例检索模块。请先安装项目依赖。") from exc
 
         self.examples = examples
         self.vectorizer = TfidfVectorizer(ngram_range=(1, 2), min_df=1)
@@ -33,4 +33,3 @@ class TfidfRetriever:
                 )
             )
         return cases
-
