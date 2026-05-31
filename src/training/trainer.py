@@ -7,7 +7,7 @@ from collections import Counter
 from pathlib import Path
 
 from src.config import resolve_path
-from src.data.dataset import read_examples
+from src.data.dataset import export_cleaned_datasets, read_examples
 from src.evaluation.metrics import binary_metrics
 from src.training.checkpoint import checkpoint_path
 

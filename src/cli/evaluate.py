@@ -19,7 +19,7 @@ def main() -> None:
     ensure_output_dirs(config)
     csv_path = config["paths"]["val_csv"] if args.split == "val" else config["paths"]["train_csv"]
     classifier = create_classifier(config, checkpoint=args.checkpoint)
-    result = evaluate(classifier, csv_path, config["paths"]["metrics_dir"])
+    result = evaluate(classifier, csv_path, config["paths"]["metrics_dir"], config=config)
     print(json.dumps(result["overall"], ensure_ascii=False, indent=2))
 
 

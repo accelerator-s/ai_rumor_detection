@@ -18,7 +18,7 @@ class RumorPipeline:
         self.classifier = create_classifier(config)
         self.classifier.load()
         train_csv = config.get("paths", {}).get("train_csv")
-        self.retriever = TfidfRetriever(read_examples(train_csv)) if train_csv else None
+        self.retriever = TfidfRetriever(read_examples(train_csv, config=config)) if train_csv else None
 
     def predict(self, text: str, explain: bool = True, llm_config: dict | None = None) -> dict:
         prediction = self.classifier.predict(text)
