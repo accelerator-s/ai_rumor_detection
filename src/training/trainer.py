@@ -4,7 +4,7 @@ import random
 from pathlib import Path
 
 from src.config import resolve_path
-from src.data.dataset import read_examples
+from src.data.dataset import export_cleaned_datasets, read_examples
 from src.evaluation.metrics import binary_metrics
 from src.training.checkpoint import checkpoint_path
 
@@ -25,7 +25,8 @@ def train(config: dict) -> Path:
     model_cfg = config["model"]
     train_cfg = config["training"]
 
-    examples = read_examples(paths["train_csv"])
+    export_cleaned_datasets(config)
+    examples = read_examples(paths["train_csv"], config=config)
     random.shuffle(examples)
     valid_size = max(1, int(len(examples) * 0.1))
     valid_examples = examples[:valid_size]

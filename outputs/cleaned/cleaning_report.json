@@ -1,0 +1,118 @@
+{
+  "train": {
+    "source": "data/train.csv",
+    "original_count": 2840,
+    "cleaned_count": 2797,
+    "duplicate_count": 43,
+    "empty_count": 0,
+    "conflict_count": 3
+  },
+  "val": {
+    "source": "data/val.csv",
+    "original_count": 401,
+    "cleaned_count": 400,
+    "duplicate_count": 1,
+    "empty_count": 0,
+    "conflict_count": 0
+  },
+  "train_conflicts": [
+    {
+      "text": "Teenager #MikeBrown won't start college on Monday because he was shot ten times by a #Ferguson police officer. HTTPURL",
+      "labels": [
+        0,
+        1
+      ],
+      "example_ids": [
+        "498277678706077696",
+        "498305825341845504",
+        "498473515302260736"
+      ],
+      "source": "data/train.csv"
+    },
+    {
+      "text": "DARREN WILSON MURDERED AN UNARMED TEEN LEFT HIS BODY IN THE STREET FOR 4 HRS Anything else is irrelevant. #MikeBrown #Ferguson #CoverUp",
+      "labels": [
+        0,
+        1
+      ],
+      "example_ids": [
+        "500291056445845504",
+        "500396175753633792"
+      ],
+      "source": "data/train.csv"
+    },
+    {
+      "text": "Hostage situation ongoing in Sydney business district. LIVE: HTTPURL UPDATES: HTTPURL HTTPURL",
+      "labels": [
+        0,
+        1
+      ],
+      "example_ids": [
+        "544350985142173697",
+        "544396587192311808"
+      ],
+      "source": "data/train.csv"
+    }
+  ],
+  "val_conflicts": [],
+  "train_val_overlap": {
+    "overlap_count": 10,
+    "samples": [
+      {
+        "text": "'Sick' people are actually taking selfies at the site of the #sydneysiege HTTPURL HTTPURL",
+        "left_id": "544477048048082945",
+        "right_id": "544461947882586112"
+      },
+      {
+        "text": "Australian Muslim community releases statement in response to #sydneysiege. HTTPURL",
+        "left_id": "544410895602839552",
+        "right_id": "544410900854091776"
+      },
+      {
+        "text": "Five Hostages Escape Sydney Cafe Siege — Live Updates From @USER HTTPURL HTTPURL",
+        "left_id": "544380980677857280",
+        "right_id": "544382892378714113"
+      },
+      {
+        "text": "Gurlitt press release concludes. Many questions being raised by attendees on state of task force investigation and limbo nazi loot objects.",
+        "left_id": "536835870897479680",
+        "right_id": "536835870293512192"
+      },
+      {
+        "text": "Hostages held in Sydney cafe, Islamic flag seen in window: local TV HTTPURL",
+        "left_id": "544280765111218176",
+        "right_id": "544282449388519424"
+      },
+      {
+        "text": "Is Prince playing a surprise show at Massey Hall tonight? HTTPURL",
+        "left_id": "529671725865111552",
+        "right_id": "529671440829005825"
+      },
+      {
+        "text": "Last-minute lawsuit filed by relative of Cornelius Gurlitt over Nazi-era art hoard HTTPURL Pls RT @ Seb_Kirby",
+        "left_id": "536514538850750464",
+        "right_id": "536333336353193985"
+      },
+      {
+        "text": "Peaceful youth demonstration at Greater St. Mark Church #ferguson HTTPURL",
+        "left_id": "499362480179912705",
+        "right_id": "499362441697193985"
+      },
+      {
+        "text": "Something being talked about tonight is the makeup of the #Ferguson Police Dept. Here's a breakdown: #MichaelBrown HTTPURL",
+        "left_id": "499346625760751616",
+        "right_id": "499381917490237440"
+      },
+      {
+        "text": "Swiss museum will accept Gurlitt art trove HTTPURL",
+        "left_id": "536844214202400768",
+        "right_id": "536845753394536448"
+      }
+    ]
+  },
+  "output_files": {
+    "cleaned_train_csv": "C:\\Users\\Steven\\Desktop\\ai_rumor_detection\\outputs\\cleaned\\train.cleaned.csv",
+    "cleaned_val_csv": "C:\\Users\\Steven\\Desktop\\ai_rumor_detection\\outputs\\cleaned\\val.cleaned.csv",
+    "cleaning_report_json": "C:\\Users\\Steven\\Desktop\\ai_rumor_detection\\outputs\\cleaned\\cleaning_report.json"
+  }
+}

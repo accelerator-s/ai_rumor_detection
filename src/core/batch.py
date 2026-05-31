@@ -35,7 +35,7 @@ def run_batch_prediction(
 
     start = time.perf_counter()
     for index, raw in enumerate(reader):
-        text = normalize_text(raw.get("text") or "")
+        text = normalize_text(raw.get("text") or "", emoji_normalization=True)
         if not text:
             continue
         prediction = classifier.predict(text)
