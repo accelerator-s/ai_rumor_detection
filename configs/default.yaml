@@ -3,10 +3,20 @@ seed: 42
 paths:
   train_csv: data/train.csv
   val_csv: data/val.csv
+  cleaned_train_csv: outputs/cleaned/train.cleaned.csv
+  cleaned_val_csv: outputs/cleaned/val.cleaned.csv
+  cleaning_report_json: outputs/cleaned/cleaning_report.json
   pretrained_model: models/pretrained
   checkpoint_dir: outputs/checkpoints
   metrics_dir: outputs/metrics
   predictions_dir: outputs/predictions
+
+data_cleaning:
+  enabled: true
+  emoji_normalization: true
+  deduplicate: true
+  conflict_policy: report
+  overlap_check: true
 
 model:
   name: vinai/bertweet-base

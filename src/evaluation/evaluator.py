@@ -4,14 +4,14 @@ import csv
 import json
 from pathlib import Path
 
-from src.config import resolve_path
+from src.config import load_config, resolve_path
 from src.data.dataset import read_examples
 from src.evaluation.event_analysis import metrics_by_event
 from src.evaluation.metrics import binary_metrics
 
 
-def evaluate(classifier, csv_path: str | Path, output_dir: str | Path) -> dict:
-    examples = read_examples(csv_path)
+def evaluate(classifier, csv_path: str | Path, output_dir: str | Path, config: dict | None = None) -> dict:
+    examples = read_examples(csv_path, config=config)
     predictions = [classifier.predict(item.text) for item in examples]
     y_true = [int(item.label) for item in examples]
     y_pred = [item.label for item in predictions]
