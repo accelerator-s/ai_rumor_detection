@@ -16,6 +16,7 @@ model:
 training:
   epochs: 3
   batch_size: 8
+  validation_ratio: 0.1
   gradient_accumulation_steps: 2
   learning_rate: 2.0e-5
   weight_decay: 0.01
