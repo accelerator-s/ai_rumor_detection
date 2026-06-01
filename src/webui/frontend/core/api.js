@@ -29,8 +29,8 @@ async function request(method, path, body) {
 
 export const api = {
   health: () => request("GET", "/health"),
-  predict: (text) => request("POST", "/predict", { text }),
-  explain: (text) => request("POST", "/explain", { text }),
+  predict: (text, event) => request("POST", "/predict", { text, event }),
+  explain: (text, event) => request("POST", "/explain", { text, event }),
   batch: (content, filename) => request("POST", "/batch", { content, filename }),
   llmConfig: () => request("GET", "/llm/config"),
   saveLlmConfig: (payload) => request("POST", "/llm/config", payload),

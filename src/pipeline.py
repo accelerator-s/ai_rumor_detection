@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from src.config import load_config
+from src.core.events import normalize_event
 from src.data.dataset import read_examples
 from src.explain.evidence import simple_evidence
 from src.explain.generator import LlmExplainer
@@ -20,14 +21,16 @@ class RumorPipeline:
         train_csv = config.get("paths", {}).get("train_csv")
         self.retriever = TfidfRetriever(read_examples(train_csv, config=config)) if train_csv else None
 
-    def predict(self, text: str, explain: bool = True, llm_config: dict | None = None) -> dict:
-        prediction = self.classifier.predict(text)
+    def predict(self, text: str, event: str, explain: bool = True, llm_config: dict | None = None) -> dict:
+        event = normalize_event(event)
+        prediction = self.classifier.predict(text, event=event)
         top_k = int(self.config.get("retrieval", {}).get("top_k", 3))
         cases = self.retriever.search(text, top_k=top_k) if self.retriever else []
         evidence = simple_evidence(text)
         explanation = self._explain(text, prediction, evidence, cases, explain, llm_config)
         return {
             "prediction": asdict(prediction),
+            "event": event,
             "evidence": evidence,
             "similar_cases": [asdict(case) for case in cases],
             "explanation": asdict(explanation) if explanation else None,

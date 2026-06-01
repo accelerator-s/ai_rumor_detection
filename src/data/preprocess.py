@@ -3,10 +3,7 @@ from __future__ import annotations
 import html
 import re
 
-try:
-    import emoji
-except ImportError:
-    emoji = None
+import emoji
 
 
 URL_RE = re.compile(r"https?://\S+|www\.\S+", re.IGNORECASE)
@@ -18,8 +15,6 @@ EMOJI_TOKEN_RE = re.compile(r":([a-z0-9_\-&+]+):")
 
 
 def _normalize_emoji(text: str) -> str:
-    if emoji is None:
-        return text
     return emoji.demojize(text, language="en", delimiters=(" ", " "))
 
 

@@ -6,9 +6,18 @@ import {
 } from "../../core/health.js";
 
 const DEFAULT_HISTORY = [
-  '#Ferguson PD beat, &amp; charged innocent man with "Property Damage" for bleeding on officer\'s clothes @YourAnonNews http://t.co/cdyvEIzZRw',
-  "BREAKING: Officials confirm the missing flight has been found intact, all passengers safe.",
-  "RT @user: They are saying the earthquake was predicted weeks ago and nobody warned us 😢",
+  {
+    text: "So, to sum up: 1) Darren Wilson KNEW NOTHING of the robbery, 2) shot #MikeBrown over jaywalking, and 3) was allowed to escape #Ferguson.",
+    event: "1",
+  },
+  {
+    text: "BREAKING: #Ferguson police chief just announced that officer Darren Wilson shot the unarmed teen, Michael Brown.",
+    event: "1",
+  },
+  {
+    text: "so ... they clearly released that video  only to shame &amp; blame the victim. #Ferguson #MikeBrown",
+    event: "1",
+  },
 ];
 const HISTORY_KEY = "rumor.single.inputHistory";
 const HISTORY_LIMIT = 3;
@@ -21,6 +30,18 @@ export function mountInput(host, ctx, { onRun }) {
       <label class="field-label" for="single-text">推文 / 文本</label>
       <textarea class="textarea single-input__text" id="single-text"
         placeholder="粘贴一条推文或一段文本，然后选择检测方式…"></textarea>
+
+      <label class="field-label" for="single-event">事件编号</label>
+      <select class="input single-input__event" id="single-event">
+        <option value="">请选择事件编号</option>
+        <option value="0">Event 0 · Gurlitt art collection</option>
+        <option value="1">Event 1 · Ferguson and Michael Brown</option>
+        <option value="2">Event 2 · Michael Essien and Ebola</option>
+        <option value="3">Event 3 · Prince Toronto concert</option>
+        <option value="4">Event 4 · Germanwings crash</option>
+        <option value="5">Event 5 · Sydney cafe siege</option>
+        <option value="6">Event 6 · Ottawa shooting</option>
+      </select>
 
       <div class="single-input__history-head">
         <span>历史记录</span>
@@ -41,6 +62,7 @@ export function mountInput(host, ctx, { onRun }) {
   `;
 
   const text = host.querySelector(".single-input__text");
+  const event = host.querySelector(".single-input__event");
   const examplesBox = host.querySelector("[data-examples]");
   const busy = host.querySelector("[data-busy]");
   const busyText = host.querySelector("[data-busy-text]");
@@ -69,12 +91,16 @@ export function mountInput(host, ctx, { onRun }) {
     const seen = new Set();
     const out = [];
     for (const item of items) {
-      const value = String(item || "").trim();
-      if (!value || seen.has(value)) {
+      const entry = normalizeHistoryEntry(item);
+      if (!entry.text) {
         continue;
       }
-      seen.add(value);
-      out.push(value);
+      const key = `${entry.event}\n${entry.text}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      out.push(entry);
       if (out.length === HISTORY_LIMIT) {
         break;
       }
@@ -83,12 +109,24 @@ export function mountInput(host, ctx, { onRun }) {
       if (out.length === HISTORY_LIMIT) {
         break;
       }
-      if (!seen.has(item)) {
-        seen.add(item);
-        out.push(item);
+      const entry = normalizeHistoryEntry(item);
+      const key = `${entry.event}\n${entry.text}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(entry);
       }
     }
     return out;
+  }
+
+  function normalizeHistoryEntry(item) {
+    if (item && typeof item === "object") {
+      return {
+        text: String(item.text || "").trim(),
+        event: String(item.event || "").trim(),
+      };
+    }
+    return { text: String(item || "").trim(), event: "" };
   }
 
   let history = loadHistory();
@@ -99,22 +137,23 @@ export function mountInput(host, ctx, { onRun }) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "single-input__example";
-      btn.textContent = ex;
-      btn.title = ex;
+      btn.textContent = ex.event ? `event ${ex.event} · ${ex.text}` : ex.text;
+      btn.title = ex.event ? `event ${ex.event}\n${ex.text}` : ex.text;
       btn.addEventListener("click", () => {
-        text.value = ex;
+        text.value = ex.text;
+        event.value = ex.event;
         text.focus();
       });
       examplesBox.append(btn);
     }
   }
 
-  function remember(value) {
+  function remember(value, eventValue = null) {
     const normalized = String(value || "").trim();
     if (!normalized) {
       return;
     }
-    history = normalizeHistory([normalized, ...history]);
+    history = normalizeHistory([{ text: normalized, event: String(eventValue || "").trim() }, ...history]);
     saveHistory(history);
     renderHistory();
   }
@@ -153,18 +192,22 @@ export function mountInput(host, ctx, { onRun }) {
     applyGate();
   }
 
-  predictBtn.addEventListener("click", () => onRun("predict", text.value.trim()));
-  explainBtn.addEventListener("click", () => onRun("explain", text.value.trim()));
+  predictBtn.addEventListener("click", () => onRun("predict", text.value.trim(), event.value.trim()));
+  explainBtn.addEventListener("click", () => onRun("explain", text.value.trim(), event.value.trim()));
   text.addEventListener("keydown", (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && explanationReady()) {
-      onRun("explain", text.value.trim());
+      onRun("explain", text.value.trim(), event.value.trim());
     }
   });
 
   return {
     getText: () => text.value.trim(),
+    getEvent: () => event.value.trim(),
     setText: (v) => {
       text.value = v;
+    },
+    setEvent: (v) => {
+      event.value = v || "";
     },
     remember,
     setBusy,

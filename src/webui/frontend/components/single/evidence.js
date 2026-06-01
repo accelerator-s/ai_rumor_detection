@@ -1,3 +1,5 @@
+import { renderAiMessage } from "../../core/ai_output.js";
+
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (c) => ({
     "&": "&amp;",
@@ -21,7 +23,7 @@ export function renderEvidence(host, payload) {
   const evidence = (explanation && explanation.evidence) || result.evidence || [];
   const maxAbs = evidence.reduce((max, [, weight]) => Math.max(max, Math.abs(Number(weight) || 0)), 0);
   const reason = explanation && explanation.text
-    ? escapeHtml(explanation.text)
+    ? explanation.text
     : "本次为仅分类模式，未调用大模型生成自然语言解释。模型证据仍展示如下。";
   const chips = evidence.map(([token, weight], index) => {
     const score = Number(weight) || 0;
@@ -37,9 +39,11 @@ export function renderEvidence(host, payload) {
         <span class="icon" data-icon="explain"></span><h2>解释依据</h2>
       </div>
       <div class="single-evidence card">
-        <p class="single-evidence__reason">${reason}</p>
+        <div class="single-evidence__reason" data-reason></div>
         <div class="single-evidence__head">关键证据词（${evidence.length}）</div>
         <div class="single-evidence__chips">${chips || '<span class="empty">无可展示的证据词。</span>'}</div>
       </div>
     </section>`;
+
+  renderAiMessage(host.querySelector("[data-reason]"), reason);
 }

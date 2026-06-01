@@ -20,6 +20,10 @@ function scrollToStep(host) {
   host?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function scrollToTop(root) {
+  root?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 export async function mount(root, ctx) {
   const hosts = Object.fromEntries(
     [...root.querySelectorAll("[data-step-host]")].map((el) => [el.dataset.stepHost, el])
@@ -29,7 +33,7 @@ export async function mount(root, ctx) {
 
   const input = mountInput(hosts.input, ctx, { onRun: run });
   const output = mountExport(hosts.export, {
-    onRerun: (payload) => run(payload.mode, payload.text),
+    onRerun: (payload) => run(payload.mode, payload.text, payload.event),
     onClear: clear,
   });
 
@@ -49,18 +53,30 @@ export async function mount(root, ctx) {
     });
   }
 
-  function clear() {
+  async function clear() {
     input.setText("");
-    void reset();
+    input.setEvent(null);
+    await reset();
+    scrollToTop(root);
   }
 
-  async function run(mode, text) {
+  async function run(mode, text, event) {
     if (!text) {
       stepper.set("input", "error");
       await renderState(hosts.result, {
         kind: "error",
         title: "请输入文本",
         detail: "粘贴一条推文或选择示例文本后再运行检测。",
+      });
+      return;
+    }
+    const normalizedEvent = String(event || "").trim();
+    if (!normalizedEvent) {
+      stepper.set("input", "error");
+      await renderState(hosts.result, {
+        kind: "error",
+        title: "请输入事件编号",
+        detail: "最终模型需要 event 特征。请填写事件编号后再运行检测。",
       });
       return;
     }
@@ -95,9 +111,9 @@ export async function mount(root, ctx) {
 
     const started = performance.now();
     try {
-      const result = mode === "explain" ? await ctx.api.explain(text) : await ctx.api.predict(text);
-      input.remember(text);
-      const payload = { result, mode, text, elapsedMs: Math.round(performance.now() - started) };
+      const result = mode === "explain" ? await ctx.api.explain(text, normalizedEvent) : await ctx.api.predict(text, normalizedEvent);
+      input.remember(text, normalizedEvent);
+      const payload = { result, mode, text, event: normalizedEvent, elapsedMs: Math.round(performance.now() - started) };
       latest = payload;
 
       renderResult(hosts.result, payload);
@@ -128,7 +144,7 @@ export async function mount(root, ctx) {
         kind: "error",
         title: "检测失败",
         detail: message,
-        retry: () => run(mode, text),
+        retry: () => run(mode, text, event),
       });
       ctx.bus.emit("result-error", message);
     } finally {

@@ -45,7 +45,7 @@ class Explanation:
 class Classifier(Protocol):
     model_name: str
 
-    def predict(self, text: str) -> Prediction:
+    def predict(self, text: str, event: str) -> Prediction:
         ...
 
 

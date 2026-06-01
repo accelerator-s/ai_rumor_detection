@@ -90,7 +90,7 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/batch":
                 result = services.batch_predict(payload)
             else:
-                result = services.predict(payload.get("text", ""), explain=path == "/explain")
+                result = services.predict(payload.get("text", ""), event=payload.get("event"), explain=path == "/explain")
             self._json(200, result)
         except ServiceError as exc:
             self._json(400, {"error": str(exc)})

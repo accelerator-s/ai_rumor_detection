@@ -52,7 +52,7 @@ export function renderResult(host, payload) {
           </div>
 
           <div class="single-result__meta">
-            <span>模型 <b>${escapeHtml(pred.model_name || "—")}</b></span>
+            <span>事件 <b>${escapeHtml(payload.event)}</b></span>
             <span>耗时 <b>${payload.elapsedMs ?? "—"} ms</b></span>
             <span>模式 <b>${payload.mode === "explain" ? "检测+解释" : "仅分类"}</b></span>
           </div>

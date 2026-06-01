@@ -5,17 +5,15 @@ function pct(value) {
 export function renderMetrics(host, data) {
   const metrics = data.metrics || null;
   const confusion = data.confusion || null;
-  const metricCards = metrics
-    ? [
-        ["Accuracy", metrics.accuracy],
-        ["Precision", metrics.precision],
-        ["Recall", metrics.recall],
-        ["F1", metrics.f1],
-      ].map(([name, value]) => `
+  const metricCards = [
+    ["Accuracy", metrics.accuracy],
+    ["Precision", metrics.precision],
+    ["Recall", metrics.recall],
+    ["F1", metrics.f1],
+  ].map(([name, value]) => `
         <div class="batch-metrics__metric card">
           <span>${name}</span><strong>${pct(value)}</strong>
-        </div>`).join("")
-    : '<div class="batch-metrics__notice card">CSV 未提供有效 label，已完成预测但不计算评测指标。</div>';
+        </div>`).join("");
   const matrix = confusion ? `
     <div class="batch-metrics__matrix card">
       <h3>混淆矩阵</h3>
