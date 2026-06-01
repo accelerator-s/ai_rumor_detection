@@ -16,6 +16,14 @@ const STEPS = [
   { id: "report", label: "保存报告", hint: "下载 JSON" },
 ];
 
+function scrollToStep(host) {
+  host?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 export async function mount(root, ctx) {
   const hosts = Object.fromEntries(
     [...root.querySelectorAll("[data-batch-host]")].map((el) => [el.dataset.batchHost, el])
@@ -30,6 +38,7 @@ export async function mount(root, ctx) {
   await reset();
 
   async function reset() {
+    hosts.upload.hidden = false;
     stepper.reset();
     stepper.set("upload", "active");
     hosts.charts.innerHTML = "";
@@ -42,21 +51,25 @@ export async function mount(root, ctx) {
     });
   }
 
-  function clear() {
-    void reset();
+  async function clear() {
+    await reset();
+    scrollToTop();
   }
 
   async function run(input) {
     if (input.error) {
+      stepper.set("upload", "error");
       await renderState(hosts.metrics, {
         kind: "error",
         title: "读取文件失败",
         detail: input.error,
       });
+      scrollToStep(hosts.metrics);
       return;
     }
     latestInput = input;
     upload.setBusy(true);
+    hosts.upload.hidden = true;
     stepper.reset();
     stepper.set("upload", "done");
     stepper.set("run", "active");
@@ -68,13 +81,15 @@ export async function mount(root, ctx) {
       title: "正在运行批量分类",
       detail: "仅调用本地分类模型，不调用检索或大模型解释。",
     });
+    scrollToStep(hosts.metrics);
 
     try {
       const data = await ctx.api.batch(input.content, input.filename);
-      stepper.set("run", "done");
-      stepper.set("metrics", "active");
+
       renderMetrics(hosts.metrics, data);
       await hydrateIcons(hosts.metrics);
+      stepper.set("run", "done");
+      stepper.set("metrics", "active");
       stepper.set("metrics", "done");
 
       stepper.set("charts", "active");
@@ -92,14 +107,28 @@ export async function mount(root, ctx) {
       stepper.set("report", "done");
       ctx.bus.emit("batch-result", data);
     } catch (err) {
+      hosts.upload.hidden = false;
       const message = err.message || "批量评测失败";
-      stepper.set("run", "error");
+      if (stepper.get("run") === "active") {
+        stepper.set("run", "error");
+      } else if (stepper.get("metrics") === "active") {
+        stepper.set("metrics", "error");
+      } else if (stepper.get("charts") === "active") {
+        stepper.set("charts", "error");
+      } else if (stepper.get("table") === "active") {
+        stepper.set("table", "error");
+      } else if (stepper.get("report") === "active") {
+        stepper.set("report", "error");
+      } else {
+        stepper.set("upload", "error");
+      }
       await renderState(hosts.metrics, {
         kind: "error",
         title: "批量评测失败",
         detail: message,
         retry: () => run(input),
       });
+      scrollToStep(hosts.metrics);
     } finally {
       upload.setBusy(false);
     }

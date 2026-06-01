@@ -17,7 +17,7 @@ def main() -> None:
     report = export_cleaned_datasets(config)
     print(json.dumps(report, ensure_ascii=False, indent=2))
     print(f"saved cleaned train: {resolve_path(config['paths']['cleaned_train_csv'])}")
-    print(f"saved cleaned val: {resolve_path(config['paths']['cleaned_val_csv'])}")
+    print(f"validation kept raw: {resolve_path(config['paths']['val_csv'])}")
     print(f"saved cleaning report: {resolve_path(config['paths']['cleaning_report_json'])}")
 
 

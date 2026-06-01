@@ -149,28 +149,35 @@ def export_cleaned_datasets(config: dict) -> dict:
     raw_train = _read_raw_examples(train_path)
     raw_val = _read_raw_examples(val_path)
     cleaned_train, train_stats, train_conflicts = clean_examples(raw_train, source=str(train_path), config=config)
-    cleaned_val, val_stats, val_conflicts = clean_examples(raw_val, source=str(val_path), config=config)
-    overlap = overlap_stats(cleaned_train, cleaned_val)
+    raw_val_stats = CleaningStats(
+        source=str(val_path),
+        original_count=len(raw_val),
+        cleaned_count=len(raw_val),
+        duplicate_count=0,
+        empty_count=0,
+        conflict_count=0,
+    )
+    overlap = overlap_stats(cleaned_train, raw_val)
 
     cleaned_train_path = resolve_path(paths.get("cleaned_train_csv", "outputs/cleaned/train.cleaned.csv"))
-    cleaned_val_path = resolve_path(paths.get("cleaned_val_csv", "outputs/cleaned/val.cleaned.csv"))
     report_path = resolve_path(paths.get("cleaning_report_json", "outputs/cleaned/cleaning_report.json"))
     cleaned_train_path.parent.mkdir(parents=True, exist_ok=True)
-    cleaned_val_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.parent.mkdir(parents=True, exist_ok=True)
 
     _write_examples_csv(cleaned_train_path, cleaned_train)
-    _write_examples_csv(cleaned_val_path, cleaned_val)
 
     report = {
         "train": asdict(train_stats),
-        "val": asdict(val_stats),
+        "val": {
+            **asdict(raw_val_stats),
+            "preserved_raw": True,
+        },
         "train_conflicts": train_conflicts,
-        "val_conflicts": val_conflicts,
+        "val_conflicts": [],
         "train_val_overlap": overlap,
         "output_files": {
             "cleaned_train_csv": str(cleaned_train_path),
-            "cleaned_val_csv": str(cleaned_val_path),
+            "val_csv": str(resolve_path(val_path)),
             "cleaning_report_json": str(report_path),
         },
     }

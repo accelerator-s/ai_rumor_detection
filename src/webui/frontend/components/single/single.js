@@ -20,8 +20,8 @@ function scrollToStep(host) {
   host?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function scrollToTop(root) {
-  root?.scrollIntoView({ behavior: "smooth", block: "start" });
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 export async function mount(root, ctx) {
@@ -41,6 +41,7 @@ export async function mount(root, ctx) {
 
   async function reset() {
     latest = null;
+    hosts.input.hidden = false;
     stepper.reset();
     stepper.set("input", "active");
     hosts.evidence.innerHTML = "";
@@ -57,7 +58,7 @@ export async function mount(root, ctx) {
     input.setText("");
     input.setEvent(null);
     await reset();
-    scrollToTop(root);
+    scrollToTop();
   }
 
   async function run(mode, text, event) {
@@ -68,6 +69,7 @@ export async function mount(root, ctx) {
         title: "请输入文本",
         detail: "粘贴一条推文或选择示例文本后再运行检测。",
       });
+      scrollToStep(hosts.result);
       return;
     }
     const normalizedEvent = String(event || "").trim();
@@ -78,6 +80,7 @@ export async function mount(root, ctx) {
         title: "请输入事件编号",
         detail: "最终模型需要 event 特征。请填写事件编号后再运行检测。",
       });
+      scrollToStep(hosts.result);
       return;
     }
     const ready = mode === "explain" ? explanationReady() : classifierReady();
@@ -92,10 +95,12 @@ export async function mount(root, ctx) {
           ? "请先在“大模型配置”页面补全服务地址、访问密钥和解释模型。"
           : (health && health.error) || "分类模型尚未加载，暂时无法运行检测。",
       });
+      scrollToStep(hosts.result);
       return;
     }
 
     input.setBusy(true, mode);
+    hosts.input.hidden = true;
     hosts.evidence.innerHTML = "";
     hosts.cases.innerHTML = "";
     output.clear();
@@ -111,41 +116,51 @@ export async function mount(root, ctx) {
 
     const started = performance.now();
     try {
-      const result = mode === "explain" ? await ctx.api.explain(text, normalizedEvent) : await ctx.api.predict(text, normalizedEvent);
+      const result = mode === "explain"
+        ? await ctx.api.explain(text, normalizedEvent)
+        : await ctx.api.predict(text, normalizedEvent);
       input.remember(text, normalizedEvent);
       const payload = { result, mode, text, event: normalizedEvent, elapsedMs: Math.round(performance.now() - started) };
       latest = payload;
 
       renderResult(hosts.result, payload);
       await hydrateIcons(hosts.result);
-      scrollToStep(hosts.result);
       stepper.set("result", "done");
       stepper.set("evidence", "active");
 
       renderEvidence(hosts.evidence, payload);
       await hydrateIcons(hosts.evidence);
-      scrollToStep(hosts.evidence);
       stepper.set("evidence", "done");
       stepper.set("cases", "active");
 
       await renderCases(hosts.cases, payload);
-      scrollToStep(hosts.cases);
       stepper.set("cases", "done");
       stepper.set("export", "active");
 
       await output.setPayload(payload);
-      scrollToStep(hosts.export);
       stepper.set("export", "done");
       ctx.bus.emit("result", payload);
     } catch (err) {
+      hosts.input.hidden = false;
       const message = err.message || "检测失败";
-      stepper.set("result", "error");
+      if (stepper.get("result") === "active") {
+        stepper.set("result", "error");
+      } else if (stepper.get("evidence") === "active") {
+        stepper.set("evidence", "error");
+      } else if (stepper.get("cases") === "active") {
+        stepper.set("cases", "error");
+      } else if (stepper.get("export") === "active") {
+        stepper.set("export", "error");
+      } else {
+        stepper.set("input", "error");
+      }
       await renderState(hosts.result, {
         kind: "error",
         title: "检测失败",
         detail: message,
         retry: () => run(mode, text, event),
       });
+      scrollToStep(hosts.result);
       ctx.bus.emit("result-error", message);
     } finally {
       input.setBusy(false, mode);
