@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Iterable
 
 from src.config import resolve_path
-from src.data.preprocess import normalize_text
+from src.data.preprocess import URL_RE, normalize_text
 
 
 @dataclass(slots=True)
@@ -38,6 +38,11 @@ def _normalize_example_text(text: str, config: dict | None = None) -> str:
     return normalize_text(text, emoji_normalization=bool(cleaning.get("emoji_normalization", True)))
 
 
+def _body_without_urls(text: str, config: dict | None = None) -> str:
+    normalized = _normalize_example_text(text, config=config)
+    return " ".join(URL_RE.sub(" ", normalized.replace("HTTPURL", " ")).split())
+
+
 def read_examples(
     path: str | Path,
     with_label: bool = True,
@@ -45,15 +50,7 @@ def read_examples(
 ) -> list[RumorExample]:
     rows = _read_raw_examples(path, with_label=with_label)
     if not _cleaning_config(config).get("enabled", True):
-        return [
-            RumorExample(
-                id=item.id,
-                text=_normalize_example_text(item.text, config=config),
-                label=item.label,
-                event=item.event,
-            )
-            for item in rows
-        ]
+        return rows
     cleaned, _stats, _conflicts = clean_examples(rows, source=str(path), config=config)
     return cleaned
 
@@ -63,63 +60,70 @@ def clean_examples(
     source: str,
     config: dict | None = None,
 ) -> tuple[list[RumorExample], CleaningStats, list[dict]]:
-    cleaning = _cleaning_config(config)
-    deduplicate = bool(cleaning.get("deduplicate", True))
-
-    cleaned: list[RumorExample] = []
-    duplicate_count = 0
+    raw_conflict_ids, conflicts = _raw_text_label_conflicts(examples, source)
     empty_count = 0
-    conflicts: list[dict] = []
-    seen_labels: dict[str, set[int]] = defaultdict(set)
-    seen_example: dict[str, RumorExample] = {}
+    duplicate_count = 0
+    candidates: list[tuple[RumorExample, str]] = []
 
     for example in examples:
+        if example.id in raw_conflict_ids:
+            continue
         text = _normalize_example_text(example.text, config=config)
         if not text:
             empty_count += 1
             continue
-        normalized = RumorExample(id=example.id, text=text, label=example.label, event=example.event)
-        if normalized.label is not None:
-            seen_labels[normalized.text].add(int(normalized.label))
-            if len(seen_labels[normalized.text]) > 1:
-                conflicts.append(
-                    {
-                        "text": normalized.text,
-                        "labels": sorted(seen_labels[normalized.text]),
-                        "example_ids": [seen_example[normalized.text].id, normalized.id]
-                        if normalized.text in seen_example
-                        else [normalized.id],
-                        "source": source,
-                    }
-                )
-        if deduplicate and normalized.text in seen_example:
-            duplicate_count += 1
-            continue
-        seen_example[normalized.text] = normalized
-        cleaned.append(normalized)
+        candidates.append((RumorExample(id=example.id, text=text, label=example.label, event=example.event), example.text))
 
-    conflict_items = _deduplicate_conflicts(conflicts)
+    body_groups: dict[str, list[tuple[RumorExample, str]]] = defaultdict(list)
+    for normalized, raw_text in candidates:
+        body_groups[_body_without_urls(raw_text, config=config)].append((normalized, raw_text))
+
+    cleaned: list[RumorExample] = []
+    for group in body_groups.values():
+        labels = {item.label for item, _raw_text in group if item.label is not None}
+        raw_texts = {raw_text for _item, raw_text in group}
+        if len(labels) == 1 and len(raw_texts) > 1:
+            cleaned.append(group[0][0])
+            duplicate_count += len(group) - 1
+            continue
+        cleaned.extend(item for item, _raw_text in group)
+
     stats = CleaningStats(
         source=source,
         original_count=len(examples),
         cleaned_count=len(cleaned),
         duplicate_count=duplicate_count,
         empty_count=empty_count,
-        conflict_count=len(conflict_items),
+        conflict_count=len(conflicts),
     )
-    return cleaned, stats, conflict_items
+    return cleaned, stats, conflicts
 
 
-def _deduplicate_conflicts(conflicts: list[dict]) -> list[dict]:
-    merged: dict[str, dict] = {}
-    for item in conflicts:
-        key = item["text"]
-        if key not in merged:
-            merged[key] = item
+def _raw_text_label_conflicts(examples: list[RumorExample], source: str) -> tuple[set[str], list[dict]]:
+    groups: dict[str, list[RumorExample]] = defaultdict(list)
+    for example in examples:
+        if example.label is not None:
+            groups[example.text].append(example)
+
+    conflict_ids: set[str] = set()
+    conflicts: list[dict] = []
+    for raw_text, group in groups.items():
+        labels = sorted({int(item.label) for item in group if item.label is not None})
+        if len(labels) <= 1:
             continue
-        merged[key]["labels"] = sorted(set(merged[key]["labels"]) | set(item["labels"]))
-        merged[key]["example_ids"] = sorted(set(merged[key]["example_ids"]) | set(item["example_ids"]))
-    return list(merged.values())
+        example_ids = [item.id for item in group]
+        conflict_ids.update(example_ids)
+        conflicts.append(
+            {
+                "type": "raw_text_label_conflict",
+                "text": raw_text,
+                "labels": labels,
+                "example_ids": example_ids,
+                "source": source,
+                "action": "removed_all",
+            }
+        )
+    return conflict_ids, conflicts
 
 
 def overlap_stats(left: Iterable[RumorExample], right: Iterable[RumorExample]) -> dict:
