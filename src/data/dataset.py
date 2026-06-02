@@ -64,10 +64,15 @@ def clean_examples(
     empty_count = 0
     duplicate_count = 0
     candidates: list[tuple[RumorExample, str]] = []
+    seen_raw_texts: set[str] = set()
 
     for example in examples:
         if example.id in raw_conflict_ids:
             continue
+        if example.text in seen_raw_texts:
+            duplicate_count += 1
+            continue
+        seen_raw_texts.add(example.text)
         text = _normalize_example_text(example.text, config=config)
         if not text:
             empty_count += 1
