@@ -23,6 +23,7 @@ class BertweetClassifier:
         self.device_name = device
         self.threshold = 0.5
         self.ensemble_bert_weight = 0.5
+        self.per_event_thresholds: dict[str, float] = {}
         self.tokenizer_path: Path | None = None
         self._tokenizer: Any = None
         self._model: Any = None
@@ -41,6 +42,12 @@ class BertweetClassifier:
         metadata = self._load_metadata()
         self.threshold = float(metadata["best_threshold"])
         self.ensemble_bert_weight = float(metadata["ensemble_bert_weight"])
+        raw_per_event = metadata.get("per_event_thresholds", {})
+        self.per_event_thresholds = {
+            str(event): float(info["threshold"])
+            for event, info in raw_per_event.items()
+            if isinstance(info, dict) and "threshold" in info
+        }
         tokenizer_path = resolve_path(metadata["tokenizer_path"])
         if not tokenizer_path.exists():
             raise RuntimeError("训练元数据中的分词器路径不存在，请重新训练模型。")
@@ -82,7 +89,8 @@ class BertweetClassifier:
         tfidf_prob_1 = float(self._tfidf_model.predict_proba([_tfidf_text(text, event)])[0, 1])
         prob_1 = self.ensemble_bert_weight * float(bert_probs[1]) + (1.0 - self.ensemble_bert_weight) * tfidf_prob_1
         prob_0 = 1.0 - prob_1
-        label = int(prob_1 >= self.threshold)
+        event_threshold = self.per_event_thresholds.get(event, self.threshold)
+        label = int(prob_1 >= event_threshold)
         return Prediction(
             label=label,
             probabilities={0: prob_0, 1: prob_1},

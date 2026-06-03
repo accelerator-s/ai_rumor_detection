@@ -418,6 +418,7 @@ def _evaluate_model(model, tokenizer, tfidf_model, examples, model_cfg, train_cf
     metrics["prediction_distribution"] = dict(sorted(Counter(y_pred).items()))
     metrics["confusion_matrix"] = _confusion_matrix(y_true, y_pred)
     metrics["by_event"] = metrics_by_event(examples, y_pred)
+    metrics["per_event_thresholds"] = _per_event_thresholds(examples, probabilities, train_cfg)
     return metrics
 
 
@@ -504,6 +505,7 @@ def _write_training_metadata(
         "best_epoch": best_epoch,
         "best_threshold": metrics["threshold"],
         "ensemble_bert_weight": metrics["ensemble_weight"],
+        "per_event_thresholds": metrics.get("per_event_thresholds", {}),
         "tokenizer_path": str(resolve_path(config["paths"].get("pretrained_model", "models/pretrained"))),
         "internal_validation_metrics": {
             "loss": metrics["loss"],
@@ -543,3 +545,42 @@ def _split_stratify_labels(examples) -> list[str]:
 
 def _label_distribution(examples) -> dict[int, int]:
     return dict(sorted(Counter(int(item.label) for item in examples if item.label is not None).items()))
+
+
+def _per_event_thresholds(examples, probabilities, train_cfg: dict) -> dict[str, dict[str, float]]:
+    threshold_min = float(train_cfg.get("threshold_min", 0.3))
+    threshold_max = float(train_cfg.get("threshold_max", 0.7))
+    threshold_step = float(train_cfg.get("threshold_step", 0.01))
+    steps = max(1, int(round((threshold_max - threshold_min) / threshold_step)))
+
+    event_data: dict[str, dict[str, list]] = {}
+    for ex, prob in zip(examples, probabilities):
+        event = str(ex.event).strip()
+        if event not in event_data:
+            event_data[event] = {"y_true": [], "prob": []}
+        event_data[event]["y_true"].append(int(ex.label))
+        event_data[event]["prob"].append(prob)
+
+    per_event: dict[str, dict[str, float]] = {}
+    for event, data in event_data.items():
+        best_threshold = 0.5
+        best_f1 = -1.0
+        best_metrics = {"accuracy": 0.0, "precision": 0.0, "recall": 0.0, "f1": 0.0}
+        for idx in range(steps + 1):
+            threshold = round(threshold_min + idx * threshold_step, 6)
+            y_pred = [int(p >= threshold) for p in data["prob"]]
+            m = binary_metrics(data["y_true"], y_pred)
+            if m["f1"] > best_f1:
+                best_f1 = m["f1"]
+                best_threshold = threshold
+                best_metrics = m
+        per_event[event] = {
+            "threshold": best_threshold,
+            "f1": best_metrics["f1"],
+            "precision": best_metrics["precision"],
+            "recall": best_metrics["recall"],
+            "accuracy": best_metrics["accuracy"],
+            "n_samples": len(data["y_true"]),
+            "n_rumor": sum(1 for v in data["y_true"] if v == 1),
+        }
+    return per_event

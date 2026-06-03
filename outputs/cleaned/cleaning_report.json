@@ -2,10 +2,10 @@
   "train": {
     "source": "data/train.csv",
     "original_count": 2840,
-    "cleaned_count": 2794,
+    "cleaned_count": 2789,
     "duplicate_count": 44,
     "empty_count": 0,
-    "conflict_count": 1
+    "conflict_count": 3
   },
   "val": {
     "source": "data/val.csv",
@@ -30,6 +30,35 @@
       ],
       "source": "data/train.csv",
       "action": "removed_all"
+    },
+    {
+      "type": "body_text_label_conflict",
+      "text": "Teenager Mike Brown won't start college on Monday because he was shot ten times by a Ferguson police officer. HTTPURL",
+      "labels": [
+        0,
+        1
+      ],
+      "example_ids": [
+        "498305825341845504",
+        "498473515302260736",
+        "498277678706077696"
+      ],
+      "source": "data/train.csv",
+      "action": "removed_all"
+    },
+    {
+      "type": "body_text_label_conflict",
+      "text": "Hostage situation ongoing in Sydney business district. LIVE: HTTPURL UPDATES: HTTPURL HTTPURL",
+      "labels": [
+        0,
+        1
+      ],
+      "example_ids": [
+        "544350985142173697",
+        "544396587192311808"
+      ],
+      "source": "data/train.csv",
+      "action": "removed_all"
     }
   ],
   "val_conflicts": [],
@@ -44,8 +73,8 @@
     ]
   },
   "output_files": {
-    "cleaned_train_csv": "C:\\Users\\Steven\\Desktop\\ai_rumor_detection\\outputs\\cleaned\\train.cleaned.csv",
-    "val_csv": "C:\\Users\\Steven\\Desktop\\ai_rumor_detection\\data\\val.csv",
-    "cleaning_report_json": "C:\\Users\\Steven\\Desktop\\ai_rumor_detection\\outputs\\cleaned\\cleaning_report.json"
+    "cleaned_train_csv": "D:\\MaZX2\\Desktop\\RL_homework\\ai_rumor_detection\\outputs\\cleaned\\train.cleaned.csv",
+    "val_csv": "D:\\MaZX2\\Desktop\\RL_homework\\ai_rumor_detection\\data\\val.csv",
+    "cleaning_report_json": "D:\\MaZX2\\Desktop\\RL_homework\\ai_rumor_detection\\outputs\\cleaned\\cleaning_report.json"
   }
 }

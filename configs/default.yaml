@@ -4,7 +4,7 @@ paths:
   train_csv: data/train.csv
   val_csv: data/val.csv
   cleaning_report_json: outputs/cleaned/cleaning_report.json
-  pretrained_model: models/pretrained
+  pretrained_model: models/pretrained_roberta
   checkpoint_dir: outputs/checkpoints
   metrics_dir: outputs/metrics
   predictions_dir: outputs/predictions
@@ -17,7 +17,7 @@ data_cleaning:
   overlap_check: true
 
 model:
-  name: vinai/bertweet-base
+  name: cardiffnlp/twitter-roberta-base
   num_labels: 2
   max_length: 128
 
@@ -41,7 +41,7 @@ training:
   threshold_min: 0.2
   threshold_max: 0.8
   threshold_step: 0.01
-  selection_metric: f1
+  selection_metric: accuracy
   tfidf_word_ngram_range: [1, 3]
   tfidf_word_min_df: 2
   tfidf_word_max_df: 0.95

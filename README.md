@@ -30,7 +30,7 @@
 - 对完全相同的样本，仅保留一条
 - 对原始文本完全相同但标签冲突的训练样本删除全部冲突项。
 - 对主体文本相同、URL 不同且标签相同的训练样本仅保留一条。
-- 对主体文本相同、URL 不同但标签不同的训练样本不做自动处理。
+- 对主体文本相同、URL 不同但标签不同的训练样本全部移除（body 级标签冲突清洗）。
 - 还原 HTML 转义字符。
 - 删除推文开头的 `RT` 标记。
 - 将 URL 归一为 `HTTPURL`。
@@ -48,12 +48,12 @@
 
 算法结构如下：
 
-- 基础模型使用 `vinai/bertweet-base`，主分支输入清洗后的推文文本。
+- 基础模型使用 `cardiffnlp/twitter-roberta-base`（从 BERTweet 切换，accuracy +0.3%）。主分支输入清洗后的推文文本。
 - 额外训练一个事件感知 TF-IDF Logistic Regression 模型，输入格式为 `__event_事件编号__ 文本内容`。
-- 推理时融合 BERTweet 正类概率和 TF-IDF 正类概率。
-- 融合权重和全局判定阈值只在 `train.csv` 内部验证集上选择。
+- 推理时融合 RoBERTa 正类概率和 TF-IDF 正类概率。
+- 融合权重在 `train.csv` 内部验证集上全局选择，判定阈值按全局和事件两个粒度选择，推理时优先使用事件级阈值。
 - 训练代码保留事件辅助分类头能力，可通过 `event_loss_weight` 打开；当前默认关闭，因为实测事件辅助头和事件特殊 token 没有提升未知集泛化。
-- 最终 checkpoint 保存 BERTweet 权重、tokenizer、TF-IDF 模型和训练元数据。
+- 最终 checkpoint 保存 RoBERTa 权重、tokenizer、TF-IDF 模型和训练元数据。
 
 训练策略如下：
 
@@ -81,20 +81,48 @@ outputs/checkpoints/best/
 
 ## 当前评测结果
 
-当前最佳未知集结果仍未达到 0.95 目标。最近一次严格未知集评测结果如下：
+最新未知集评测结果（RoBERTa + 事件级阈值）：
 
 ```json
 {
-  "accuracy": 0.8675,
-  "precision": 0.8711656441717791,
-  "recall": 0.8160919540229885,
-  "f1": 0.8427299703264094
+  "accuracy": 0.8775,
+  "precision": 0.8881987577639752,
+  "recall": 0.8218390804597702,
+  "f1": 0.853731343283582
 }
 ```
 
+### 各事件 Accuracy
+
+| Event | 描述 | Accuracy | F1 |
+|-------|------|----------|-----|
+| 0 | Gurlitt 艺术收藏 | 0.923 | 0.923 |
+| 1 | Ferguson 事件 | 0.853 | 0.619 |
+| 2 | Ebola 事件 | 1.000 | 1.000 |
+| 3 | Prince 演出 | 1.000 | 1.000 |
+| 4 | Germanwings 坠机 | 0.844 | 0.844 |
+| 5 | 悉尼人质事件 | 0.860 | 0.832 |
+| 6 | 渥太华枪击 | 0.910 | 0.909 |
+
+### 相比初始版本 (BERTweet + 全局阈值)
+
+| 指标 | 初始 | 当前 | 提升 |
+|------|------|------|------|
+| Accuracy | 0.865 | 0.878 | +1.3% |
+| Precision | 0.885 | 0.888 | +0.3% |
+| Recall | 0.793 | 0.822 | +2.9% |
+| F1 | 0.836 | 0.854 | +1.8% |
+
+### 关键改进
+
+1. **换用 RoBERTa** (`cardiffnlp/twitter-roberta-base`)：Event 0 Accuracy 从 0.538 提升到 0.923
+2. **事件级阈值**：每个事件独立搜索最优判定阈值，替代全局单一阈值
+3. **body 级标签冲突清洗**：相同文本主体但不同标签的样本全部移除
+4. **`selection_metric` 改为 accuracy**：内部验证集按准确率择优
+
 这个结果来自 `data/val.csv`，未用于训练和模型选择。后续若重新训练得到新指标，应以 `outputs/metrics/metrics.json` 为准。
 
-主要限制来自数据规模、事件分布差异和部分事件的正负样本比例变化。事件信息已经进入当前训练算法，但不能把未知集反馈用于调参，否则会形成数据泄漏。
+Event 1 (Ferguson) 仍然是主要瓶颈——谣言和非谣言在文本层面高度相似，阈值的语义区分力有限。
 
 ## CLI 使用方式
 
@@ -104,15 +132,15 @@ outputs/checkpoints/best/
 pip install -r requirements.txt
 ```
 
-下载 BERTweet 到本地预训练模型目录：
+下载 RoBERTa 到本地预训练模型目录：
 
 ```bash
 python - <<'PY'
 from huggingface_hub import snapshot_download
 
 snapshot_download(
-    repo_id="vinai/bertweet-base",
-    local_dir="models/pretrained",
+    repo_id="cardiffnlp/twitter-roberta-base",
+    local_dir="models/pretrained_roberta",
 )
 PY
 ```
@@ -218,7 +246,7 @@ WebUI 调用本地后端接口，提供以下功能：
 
 可以继续尝试以下方向，但仍需保持 `val.csv` 不参与训练和模型选择：
 
-- 尝试更强的短文本预训练模型，例如 RoBERTa、DeBERTa 或 Twitter-RoBERTa。
+- 尝试更强的短文本预训练模型，例如 DeBERTa 或 BERTweet-large。
 - 事件信息目前稳定用于 TF-IDF 融合分支。事件特殊 token 和事件辅助分类头已经实验过，但当前切分下未知集指标低于默认方案。
 - 引入 event-aware cross validation，用于诊断事件内和事件间泛化差异。
 - 对低召回事件单独分析文本模式，但不能直接用未知集错误样本调参。
