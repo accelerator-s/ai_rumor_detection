@@ -6,6 +6,7 @@ from typing import Any
 
 from src.config import resolve_path
 from src.core.events import normalize_event
+from src.data.preprocess import normalize_text
 from src.interfaces import Prediction
 
 
@@ -66,10 +67,11 @@ class BertweetClassifier:
             self.load()
 
         event = normalize_event(event)
+        normalized_text = normalize_text(text)
 
         torch = self._torch
         encoded = self._tokenizer(
-            _model_text(text, event),
+            _model_text(normalized_text, event),
             truncation=True,
             max_length=self.max_length,
             padding=True,
@@ -79,7 +81,7 @@ class BertweetClassifier:
         with torch.no_grad():
             logits = self._model(**encoded).logits[0]
             bert_probs = torch.softmax(logits, dim=-1).detach().cpu().tolist()
-        tfidf_prob_1 = float(self._tfidf_model.predict_proba([_tfidf_text(text, event)])[0, 1])
+        tfidf_prob_1 = float(self._tfidf_model.predict_proba([_tfidf_text(normalized_text, event)])[0, 1])
         prob_1 = self.ensemble_bert_weight * float(bert_probs[1]) + (1.0 - self.ensemble_bert_weight) * tfidf_prob_1
         prob_0 = 1.0 - prob_1
         label = int(prob_1 >= self.threshold)

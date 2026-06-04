@@ -40,7 +40,7 @@ def _normalize_example_text(text: str, config: dict | None = None) -> str:
 
 def _body_without_urls(text: str, config: dict | None = None) -> str:
     normalized = _normalize_example_text(text, config=config)
-    return " ".join(URL_RE.sub(" ", normalized.replace("HTTPURL", " ")).split())
+    return " ".join(URL_RE.sub(" ", normalized.replace("HTTPURL", " ").replace("IMAGEURL", " ")).split())
 
 
 def read_examples(

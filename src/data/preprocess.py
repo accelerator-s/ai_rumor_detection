@@ -6,7 +6,14 @@ import re
 import emoji
 
 
-URL_RE = re.compile(r"https?://\S+|www\.\S+", re.IGNORECASE)
+URL_RE = re.compile(
+    r"https?://\S+|www\.\S+|(?:pic\.twitter\.com|pbs\.twimg\.com|twitpic\.com|instagram\.com|instagr\.am|yfrog\.com)/\S+",
+    re.IGNORECASE,
+)
+IMAGE_URL_RE = re.compile(
+    r"(?:pic\.twitter\.com|pbs\.twimg\.com|twitpic\.com|instagram\.com|instagr\.am|yfrog\.com|\.(?:jpg|jpeg|png|gif|webp)(?:[?#].*)?$)",
+    re.IGNORECASE,
+)
 USER_RE = re.compile(r"(?<![\w@])@([A-Za-z0-9_]+)")
 HASHTAG_RE = re.compile(r"(?<![\w#])#([A-Za-z0-9_]+)")
 RT_RE = re.compile(r"^\s*rt\s+", re.IGNORECASE)
@@ -95,6 +102,11 @@ def _normalize_emoji(text: str) -> str:
     return emoji.demojize(text, language="en", delimiters=(":", ":"))
 
 
+def _normalize_url(match: re.Match[str]) -> str:
+    url = match.group(0)
+    return "IMAGEURL" if IMAGE_URL_RE.search(url) else "HTTPURL"
+
+
 def _normalize_mention(match: re.Match[str]) -> str:
     username = match.group(1)
     return match.group(0) if username.lower() in SOURCE_MENTION_ALLOWLIST else "@USER"
@@ -117,7 +129,7 @@ def _normalize_hashtag(match: re.Match[str]) -> str:
 def normalize_text(text: str, emoji_normalization: bool = True) -> str:
     text = html.unescape(str(text))
     text = RT_RE.sub("", text)
-    text = URL_RE.sub("HTTPURL", text)
+    text = URL_RE.sub(_normalize_url, text)
     text = USER_RE.sub(_normalize_mention, text)
     text = HASHTAG_RE.sub(_normalize_hashtag, text)
     if emoji_normalization:

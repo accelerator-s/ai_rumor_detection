@@ -5,7 +5,6 @@ import io
 import time
 
 from src.core.events import EventInputError, normalize_event
-from src.data.preprocess import normalize_text
 from src.evaluation.metrics import binary_metrics
 from src.interfaces import Classifier
 
@@ -52,7 +51,7 @@ def run_batch_prediction(
             raise BatchInputError(f"第 {index + 2} 行{str(exc)}") from exc
         if not raw_id:
             raise BatchInputError(f"第 {index + 2} 行缺少 id。")
-        text = normalize_text(raw.get("text") or "", emoji_normalization=True)
+        text = str(raw.get("text") or "").strip()
         if not text:
             raise BatchInputError(f"第 {index + 2} 行缺少 text。")
         prediction = classifier.predict(text, event=event)
