@@ -1,0 +1,4 @@
+base_url: https://api.deepseek.com
+api_key: sk-2785302783a545e598f42cbfd537f12f
+model: deepseek-v4-flash
+temperature: 0.2
