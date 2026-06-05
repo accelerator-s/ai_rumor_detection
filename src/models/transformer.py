@@ -6,6 +6,7 @@ from typing import Any
 
 from src.config import resolve_path
 from src.core.events import normalize_event
+from src.data.preprocess import normalize_text
 from src.interfaces import Prediction
 
 
@@ -74,10 +75,11 @@ class BertweetClassifier:
             self.load()
 
         event = normalize_event(event)
+        normalized_text = normalize_text(text)
 
         torch = self._torch
         encoded = self._tokenizer(
-            _model_text(text, event),
+            _model_text(normalized_text, event),
             truncation=True,
             max_length=self.max_length,
             padding=True,
