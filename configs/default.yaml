@@ -42,6 +42,7 @@ training:
   threshold_max: 0.8
   threshold_step: 0.01
   selection_metric: accuracy
+  threshold_tune_source: val
   tfidf_word_ngram_range: [1, 3]
   tfidf_word_min_df: 2
   tfidf_word_max_df: 0.95

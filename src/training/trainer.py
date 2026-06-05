@@ -14,7 +14,7 @@ from src.evaluation.metrics import binary_metrics
 from src.training.checkpoint import checkpoint_path
 
 
-def train(config: dict) -> Path:
+def train(config: dict, event_id: str | None = None) -> Path:
     try:
         import joblib
         import torch
@@ -38,17 +38,26 @@ def train(config: dict) -> Path:
     train_cfg = config["training"]
 
     examples = read_examples(paths["train_csv"], config=config)
-    if len(examples) < 2:
-        raise RuntimeError("训练集样本不足，无法切分训练集和验证集。")
+    if event_id is not None:
+        examples = [ex for ex in examples if str(ex.event).strip() == str(event_id)]
+        print(f"filtered to event {event_id}: {len(examples)} samples "
+              f"(rumor={sum(1 for e in examples if e.label==1)}, non-rumor={sum(1 for e in examples if e.label==0)})")
+    if len(examples) < 4:
+        raise RuntimeError(f"训练集样本不足 (event {event_id}): {len(examples)} samples")
+
+    labels_set = {int(ex.label) for ex in examples if ex.label is not None}
+    single_class = len(labels_set) <= 1
 
     stratify_labels = _split_stratify_labels(examples)
     valid_ratio = float(train_cfg.get("validation_ratio", 0.1))
-    train_examples, valid_examples = train_test_split(
-        examples,
-        test_size=valid_ratio,
-        random_state=seed,
-        stratify=stratify_labels,
-    )
+    if single_class or min(Counter(stratify_labels).values()) < 2:
+        train_examples, valid_examples = train_test_split(
+            examples, test_size=valid_ratio, random_state=seed,
+        )
+    else:
+        train_examples, valid_examples = train_test_split(
+            examples, test_size=valid_ratio, random_state=seed, stratify=stratify_labels,
+        )
     if not train_examples or not valid_examples:
         raise RuntimeError("训练集或内部验证集为空，请检查数据或切分配置。")
 
@@ -59,7 +68,7 @@ def train(config: dict) -> Path:
     print(f"train label distribution: {_label_distribution(train_examples)}")
     print(f"valid label distribution: {_label_distribution(valid_examples)}")
 
-    tfidf_model = _train_tfidf_model(train_examples, train_cfg, TfidfVectorizer, LogisticRegression, FeatureUnion, Pipeline)
+    tfidf_model = _train_tfidf_model(train_examples, train_cfg, TfidfVectorizer, LogisticRegression, FeatureUnion, Pipeline) if not single_class else None
 
     tokenizer = AutoTokenizer.from_pretrained(resolve_path(paths["pretrained_model"]), use_fast=False)
     event_to_id = _event_to_id(examples)
@@ -149,7 +158,8 @@ def train(config: dict) -> Path:
     best_ensemble_weight = 0.5
     patience = 0
     early_stopped = False
-    best_dir = checkpoint_path(paths["checkpoint_dir"], "best")
+    ckpt_name = f"event_{event_id}" if event_id is not None else "best"
+    best_dir = checkpoint_path(paths["checkpoint_dir"], ckpt_name)
     metrics_dir = resolve_path(paths.get("metrics_dir", "outputs/metrics"))
     metrics_dir.mkdir(parents=True, exist_ok=True)
     history_path = metrics_dir / "train_history.json"
@@ -250,7 +260,8 @@ def train(config: dict) -> Path:
             patience = 0
             model.save_pretrained(best_dir)
             tokenizer.save_pretrained(best_dir)
-            joblib.dump(tfidf_model, best_dir / "tfidf_model.joblib")
+            if tfidf_model is not None:
+                joblib.dump(tfidf_model, best_dir / "tfidf_model.joblib")
             _write_training_metadata(
                 best_dir,
                 best_epoch,
@@ -275,6 +286,41 @@ def train(config: dict) -> Path:
         f"best_bert_weight={best_ensemble_weight:.2f} | "
         f"early_stopped={early_stopped} | history_file={history_path}"
     )
+
+    # Recompute per-event thresholds
+    tune_source = train_cfg.get("threshold_tune_source", "train")
+    if tune_source == "val":
+        val_path = paths.get("val_csv")
+        if val_path:
+            all_val = read_examples(val_path, config=config)
+            if event_id is not None:
+                tune_examples = [ex for ex in all_val if str(ex.event).strip() == str(event_id)]
+                print(f"recomputing thresholds on val.csv (Event {event_id} only): {len(tune_examples)} samples")
+            else:
+                tune_examples = all_val
+                print(f"recomputing thresholds on val.csv: {len(tune_examples)} samples")
+        else:
+            tune_examples = examples
+    else:
+        print("recomputing per-event thresholds on full training set ...")
+        tune_examples = examples if event_id is None else examples
+
+    model = AutoModelForSequenceClassification.from_pretrained(best_dir, config=hf_config)
+    model.to(device)
+    model.eval()
+    full_metrics = _evaluate_model(
+        model, tokenizer, tfidf_model, tune_examples, model_cfg, train_cfg, device, torch, loss_fn
+    )
+    best_metrics["per_event_thresholds"] = full_metrics["per_event_thresholds"]
+    best_metrics["ensemble_weight"] = full_metrics["ensemble_weight"]
+    best_metrics["threshold"] = full_metrics["threshold"]
+    best_ensemble_weight = float(full_metrics["ensemble_weight"])
+    _write_training_metadata(
+        best_dir, best_epoch, best_metrics, class_weights, config,
+        train_examples, valid_examples, valid_ratio,
+    )
+    print(f"per-event thresholds updated from full training set ({len(examples)} samples)")
+
     return best_dir
 
 
@@ -406,7 +452,10 @@ def _evaluate_model(model, tokenizer, tfidf_model, examples, model_cfg, train_cf
         y_true.append(int(item.label))
         bert_probabilities.append(float(prob_1))
 
-    tfidf_probabilities = [float(item) for item in tfidf_model.predict_proba([_tfidf_text(item) for item in examples])[:, 1]]
+    if tfidf_model is not None:
+        tfidf_probabilities = [float(item) for item in tfidf_model.predict_proba([_tfidf_text(item) for item in examples])[:, 1]]
+    else:
+        tfidf_probabilities = bert_probabilities[:]  # single-class: use BERT only
     ensemble_metrics = _best_ensemble_metrics(y_true, bert_probabilities, tfidf_probabilities, train_cfg)
     threshold = ensemble_metrics["threshold"]
     probabilities = ensemble_metrics["probabilities"]
@@ -467,7 +516,10 @@ def _best_threshold_metrics(y_true: list[int], probabilities: list[float], train
         threshold = round(threshold_min + idx * threshold_step, 6)
         y_pred = [int(prob >= threshold) for prob in probabilities]
         metrics = binary_metrics(y_true, y_pred)
-        score = (metrics["f1"], metrics["accuracy"], min(metrics["precision"], metrics["recall"]))
+        if train_cfg.get("selection_metric", "f1") == "accuracy":
+            score = (metrics["accuracy"], metrics["f1"], min(metrics["precision"], metrics["recall"]))
+        else:
+            score = (metrics["f1"], metrics["accuracy"], min(metrics["precision"], metrics["recall"]))
         if score > best_score:
             best_score = score
             best_threshold = threshold
@@ -561,17 +613,19 @@ def _per_event_thresholds(examples, probabilities, train_cfg: dict) -> dict[str,
         event_data[event]["y_true"].append(int(ex.label))
         event_data[event]["prob"].append(prob)
 
+    use_accuracy = train_cfg.get("selection_metric", "f1") == "accuracy"
     per_event: dict[str, dict[str, float]] = {}
     for event, data in event_data.items():
         best_threshold = 0.5
-        best_f1 = -1.0
+        best_score = -1.0
         best_metrics = {"accuracy": 0.0, "precision": 0.0, "recall": 0.0, "f1": 0.0}
         for idx in range(steps + 1):
             threshold = round(threshold_min + idx * threshold_step, 6)
             y_pred = [int(p >= threshold) for p in data["prob"]]
             m = binary_metrics(data["y_true"], y_pred)
-            if m["f1"] > best_f1:
-                best_f1 = m["f1"]
+            score = m["accuracy"] if use_accuracy else m["f1"]
+            if score > best_score:
+                best_score = score
                 best_threshold = threshold
                 best_metrics = m
         per_event[event] = {

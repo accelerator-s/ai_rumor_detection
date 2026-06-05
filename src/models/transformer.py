@@ -62,14 +62,15 @@ class BertweetClassifier:
         except Exception as exc:
             raise RuntimeError("分类模型权重加载失败。请先完成训练，或检查模型文件路径。") from exc
         tfidf_path = self.model_path / "tfidf_model.joblib"
-        if not tfidf_path.exists():
-            raise RuntimeError("TF-IDF 融合模型文件缺失，请重新训练模型。")
-        self._tfidf_model = joblib.load(tfidf_path)
+        if tfidf_path.exists():
+            self._tfidf_model = joblib.load(tfidf_path)
+        else:
+            self._tfidf_model = None  # single-class event, no TF-IDF needed
         self._model.to(self.device)
         self._model.eval()
 
     def predict(self, text: str, event: str) -> Prediction:
-        if self._model is None or self._tokenizer is None or self._tfidf_model is None:
+        if self._model is None or self._tokenizer is None:
             self.load()
 
         event = normalize_event(event)
@@ -86,8 +87,11 @@ class BertweetClassifier:
         with torch.no_grad():
             logits = self._model(**encoded).logits[0]
             bert_probs = torch.softmax(logits, dim=-1).detach().cpu().tolist()
-        tfidf_prob_1 = float(self._tfidf_model.predict_proba([_tfidf_text(text, event)])[0, 1])
-        prob_1 = self.ensemble_bert_weight * float(bert_probs[1]) + (1.0 - self.ensemble_bert_weight) * tfidf_prob_1
+        if self._tfidf_model is not None:
+            tfidf_prob_1 = float(self._tfidf_model.predict_proba([_tfidf_text(text, event)])[0, 1])
+            prob_1 = self.ensemble_bert_weight * float(bert_probs[1]) + (1.0 - self.ensemble_bert_weight) * tfidf_prob_1
+        else:
+            prob_1 = float(bert_probs[1])  # single-class: BERT only
         prob_0 = 1.0 - prob_1
         event_threshold = self.per_event_thresholds.get(event, self.threshold)
         label = int(prob_1 >= event_threshold)
@@ -118,3 +122,30 @@ def _model_text(text: str, event: str) -> str:
 
 def _tfidf_text(text: str, event: str) -> str:
     return f"__event_{event}__ {text}"
+
+
+class PerEventClassifier:
+    """Route predictions to event-specific models."""
+
+    def __init__(self, checkpoint_dir: Path, model_cfg: dict) -> None:
+        self.checkpoint_dir = checkpoint_dir
+        self.model_cfg = model_cfg
+        self.models: dict[str, BertweetClassifier] = {}
+
+    def load(self) -> None:
+        for p in sorted(self.checkpoint_dir.glob("event_*")):
+            eid = p.name.split("_")[-1]
+            c = BertweetClassifier(model_path=p, model_name=self.model_cfg.get("name", ""),
+                                   max_length=int(self.model_cfg.get("max_length", 128)))
+            c.load()
+            self.models[eid] = c
+        print(f"PerEventClassifier loaded: {sorted(self.models.keys())}")
+
+    def predict(self, text: str, event: str) -> Prediction:
+        if not self.models:
+            self.load()
+        from src.core.events import normalize_event
+        event = normalize_event(event)
+        if event not in self.models:
+            raise RuntimeError(f"Event {event} model not found. Available: {sorted(self.models.keys())}")
+        return self.models[event].predict(text, event)

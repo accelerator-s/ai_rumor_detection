@@ -6,6 +6,8 @@ from src.training.checkpoint import is_trained_checkpoint, latest_checkpoint
 
 
 def create_classifier(config: dict, checkpoint: str | None = None) -> BertweetClassifier:
+    from src.models.transformer import PerEventClassifier
+
     paths = config.get("paths", {})
     model_cfg = config.get("model", {})
     if checkpoint:
@@ -15,6 +17,13 @@ def create_classifier(config: dict, checkpoint: str | None = None) -> BertweetCl
     else:
         model_path = latest_checkpoint(paths.get("checkpoint_dir", "outputs/checkpoints"))
         if model_path is None:
+            # Check for per-event models
+            ckpt_root = resolve_path(paths.get("checkpoint_dir", "outputs/checkpoints"))
+            event_dirs = sorted(ckpt_root.glob("event_*"))
+            if event_dirs:
+                print(f"per-event models detected: {len(event_dirs)} events")
+                c = PerEventClassifier(ckpt_root, model_cfg)
+                return c  # type: ignore
             raise RuntimeError("尚未找到训练后的分类模型。请先完成模型训练，再启动检测服务。")
     return BertweetClassifier(
         model_path=model_path,

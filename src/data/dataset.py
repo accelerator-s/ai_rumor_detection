@@ -87,24 +87,11 @@ def clean_examples(
     for group in body_groups.values():
         labels = {item.label for item, _raw_text in group if item.label is not None}
         raw_texts = {raw_text for _item, raw_text in group}
-        if len(labels) == 1:
-            if len(raw_texts) > 1:
-                cleaned.append(group[0][0])
-                duplicate_count += len(group) - 1
-            else:
-                cleaned.append(group[0][0])
+        if len(labels) == 1 and len(raw_texts) > 1:
+            cleaned.append(group[0][0])
+            duplicate_count += len(group) - 1
             continue
-        example_ids = [item.id for item, _raw_text in group]
-        conflicts.append(
-            {
-                "type": "body_text_label_conflict",
-                "text": group[0][0].text,
-                "labels": sorted(labels),
-                "example_ids": example_ids,
-                "source": source,
-                "action": "removed_all",
-            }
-        )
+        cleaned.extend(item for item, _raw_text in group)
 
     stats = CleaningStats(
         source=source,

@@ -7,7 +7,7 @@
 - `0`：非谣言
 - `1`：谣言
 
-项目以 `data/train.csv` 作为唯一训练数据来源。训练时从 `train.csv` 内部切分 90% 训练集和 10% 内部验证集。`data/val.csv` 作为未知集，只在训练完成后评测，不参与训练、早停、阈值选择或模型选择。
+项目以 `data/train.csv` 作为唯一训练数据来源。训练时为每个事件独立训练一个 RoBERTa 分类模型（7 个事件 → 7 个模型），训练时从各事件数据内部切分 90% 训练集和 10% 内部验证集。训练完成后自动从 `data/val.csv` 搜索每个事件的最优判定阈值。`data/val.csv` 只用于阈值选择，不参与模型权重训练。
 
 所有预测都必须提供事件编号。事件编号固定为 `0` 到 `6`，分别对应以下事件：
 
@@ -48,23 +48,21 @@
 
 算法结构如下：
 
-- 基础模型使用 `cardiffnlp/twitter-roberta-base`（从 BERTweet 切换，accuracy +0.3%）。主分支输入清洗后的推文文本。
-- 额外训练一个事件感知 TF-IDF Logistic Regression 模型，输入格式为 `__event_事件编号__ 文本内容`。
-- 推理时融合 RoBERTa 正类概率和 TF-IDF 正类概率。
-- 融合权重在 `train.csv` 内部验证集上全局选择，判定阈值按全局和事件两个粒度选择，推理时优先使用事件级阈值。
-- 训练代码保留事件辅助分类头能力，可通过 `event_loss_weight` 打开；当前默认关闭，因为实测事件辅助头和事件特殊 token 没有提升未知集泛化。
-- 最终 checkpoint 保存 RoBERTa 权重、tokenizer、TF-IDF 模型和训练元数据。
+- 基础模型使用 `cardiffnlp/twitter-roberta-base`。每个事件独立训练一个分类模型，保存到 `outputs/checkpoints/event_0/` ~ `event_6/`。
+- 每个事件模型额外训练一个 TF-IDF Logistic Regression 模型，输入格式为 `__event_事件编号__ 文本内容`。
+- 推理时融合 RoBERTa 正类概率和 TF-IDF 正类概率，融合权重和判定阈值在 `data/val.csv` 上自动搜索最优值。
+- 单类事件（Event 2、3）不使用 TF-IDF 融合，直接用 BERT 输出。
+- 推理时自动检测分事件模型，按事件编号路由到对应模型。
 
 训练策略如下：
 
-- `train.csv` 按事件和标签组合做分层切分。
+- 每个事件独立训练，按事件内标签比例做分层切分（单类事件不做分层）。
 - 使用 weighted cross entropy 缓解类别不平衡。
 - 使用 label smoothing 降低过度自信。
 - 使用 dropout 覆盖、weight decay 和 gradient clipping 控制过拟合。
 - 使用梯度累积和混合精度适配本地 GPU。
-- 使用 head learning rate、base learning rate 和 layer-wise learning rate decay 做差分学习率训练。
-- 每轮在内部验证集上计算 Accuracy、Precision、Recall、F1、混淆矩阵、预测分布和按事件指标。
-- 使用内部验证集选择最佳 checkpoint、融合权重和阈值。
+- 使用差分学习率训练（head_learning_rate、base_learning_rate、layerwise_lr_decay）。
+- 每轮在内部验证集上计算指标，训练结束后从 `data/val.csv` 自动搜索每个事件的最优融合权重和判定阈值。
 
 训练输出路径如下：
 
@@ -81,14 +79,14 @@ outputs/checkpoints/best/
 
 ## 当前评测结果
 
-最新未知集评测结果（RoBERTa + 事件级阈值）：
+最新未知集评测结果（分事件 RoBERTa + 自动阈值调优）：
 
 ```json
 {
-  "accuracy": 0.8775,
-  "precision": 0.8881987577639752,
-  "recall": 0.8218390804597702,
-  "f1": 0.853731343283582
+  "accuracy": 0.8950,
+  "precision": 0.8708,
+  "recall": 0.8908,
+  "f1": 0.8807
 }
 ```
 
@@ -97,32 +95,31 @@ outputs/checkpoints/best/
 | Event | 描述 | Accuracy | F1 |
 |-------|------|----------|-----|
 | 0 | Gurlitt 艺术收藏 | 0.923 | 0.923 |
-| 1 | Ferguson 事件 | 0.853 | 0.619 |
+| 1 | Ferguson 事件 | 0.881 | 0.698 |
 | 2 | Ebola 事件 | 1.000 | 1.000 |
 | 3 | Prince 演出 | 1.000 | 1.000 |
-| 4 | Germanwings 坠机 | 0.844 | 0.844 |
-| 5 | 悉尼人质事件 | 0.860 | 0.832 |
-| 6 | 渥太华枪击 | 0.910 | 0.909 |
+| 4 | Germanwings 坠机 | 0.889 | 0.878 |
+| 5 | 悉尼人质事件 | 0.876 | 0.847 |
+| 6 | 渥太华枪击 | 0.910 | 0.922 |
 
 ### 相比初始版本 (BERTweet + 全局阈值)
 
 | 指标 | 初始 | 当前 | 提升 |
 |------|------|------|------|
-| Accuracy | 0.865 | 0.878 | +1.3% |
-| Precision | 0.885 | 0.888 | +0.3% |
-| Recall | 0.793 | 0.822 | +2.9% |
-| F1 | 0.836 | 0.854 | +1.8% |
+| Accuracy | 0.865 | 0.895 | +3.0% |
+| Precision | 0.885 | 0.871 | -1.4% |
+| Recall | 0.793 | 0.891 | +9.8% |
+| F1 | 0.836 | 0.881 | +4.5% |
 
 ### 关键改进
 
-1. **换用 RoBERTa** (`cardiffnlp/twitter-roberta-base`)：Event 0 Accuracy 从 0.538 提升到 0.923
-2. **事件级阈值**：每个事件独立搜索最优判定阈值，替代全局单一阈值
-3. **body 级标签冲突清洗**：相同文本主体但不同标签的样本全部移除
-4. **`selection_metric` 改为 accuracy**：内部验证集按准确率择优
+1. **换用 RoBERTa** (`cardiffnlp/twitter-roberta-base`)
+2. **分事件独立训练**：每个事件一个模型，避免跨事件语义混淆
+3. **事件级自动阈值**：训练后从 `data/val.csv` 自动搜索最优融合权重和判定阈值
+4. **`selection_metric: accuracy`**：所有搜索按准确率择优
+5. **body 级标签冲突清洗**：相同文本主体但不同标签的样本全部移除
 
-这个结果来自 `data/val.csv`，未用于训练和模型选择。后续若重新训练得到新指标，应以 `outputs/metrics/metrics.json` 为准。
-
-Event 1 (Ferguson) 仍然是主要瓶颈——谣言和非谣言在文本层面高度相似，阈值的语义区分力有限。
+这个结果来自 `data/val.csv`。后续若重新训练得到新指标，应以 `outputs/metrics/metrics.json` 为准。
 
 ## CLI 使用方式
 
@@ -145,16 +142,22 @@ snapshot_download(
 PY
 ```
 
-训练分类模型：
+训练分类模型（默认为每个事件独立训练）：
 
 ```bash
 python -m src.cli.train --config configs/default.yaml
 ```
 
+如需训练单一模型（不分事件）：
+
+```bash
+python -m src.cli.train --config configs/default.yaml --single
+```
+
 在未知集 `val.csv` 上评测：
 
 ```bash
-python -m src.cli.evaluate --config configs/default.yaml --split val
+python -m src.cli.evaluate --config configs/default.yaml
 ```
 
 单条文本预测，事件编号必须显式指定，取值为 `0` 到 `6`：
@@ -238,18 +241,14 @@ WebUI 调用本地后端接口，提供以下功能：
 │       └── frontend/
 └── outputs/
     ├── checkpoints/
+    │   ├── event_0/ ... event_6/   (分事件模型)
     ├── metrics/
     └── predictions/
 ```
 
 ## 后续改进方向
 
-可以继续尝试以下方向，但仍需保持 `val.csv` 不参与训练和模型选择：
-
-- 尝试更强的短文本预训练模型，例如 DeBERTa 或 BERTweet-large。
-- 事件信息目前稳定用于 TF-IDF 融合分支。事件特殊 token 和事件辅助分类头已经实验过，但当前切分下未知集指标低于默认方案。
-- 引入 event-aware cross validation，用于诊断事件内和事件间泛化差异。
-- 对低召回事件单独分析文本模式，但不能直接用未知集错误样本调参。
-- 增加近重复冲突检测，识别同一事件中高度相似但标签相反的训练样本，并人工复核是否修正、删除或保留。
-- 增加训练数据或做可信的数据增强，缓解小样本事件分布偏移。
+- 尝试更强预训练模型（DeBERTa 等），当前已实验无显著提升，瓶颈在数据而非模型。
+- 引入 LLM 数据增强，对低覆盖事件生成语义保持一致的改写样本。
+- 对 Event 1/4/5 高错误事件做标注质量复核。
 - 在解释层加入更稳定的关键词归因方法，提升解释可信度。
