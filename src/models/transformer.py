@@ -53,7 +53,7 @@ class BertweetClassifier:
         if not tokenizer_path.exists():
             raise RuntimeError("训练元数据中的分词器路径不存在，请重新训练模型。")
         try:
-            self._tokenizer = AutoTokenizer.from_pretrained(str(tokenizer_path), use_fast=False)
+            self._tokenizer = AutoTokenizer.from_pretrained(str(tokenizer_path))
         except Exception as exc:
             raise RuntimeError(
                 "分词器加载失败。请检查本地预训练模型文件是否完整，并安装 sentencepiece 或 tiktoken 后重试。"

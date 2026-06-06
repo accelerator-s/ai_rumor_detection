@@ -70,7 +70,7 @@ def train(config: dict, event_id: str | None = None) -> Path:
 
     tfidf_model = _train_tfidf_model(train_examples, train_cfg, TfidfVectorizer, LogisticRegression, FeatureUnion, Pipeline) if not single_class else None
 
-    tokenizer = AutoTokenizer.from_pretrained(resolve_path(paths["pretrained_model"]), use_fast=False)
+    tokenizer = AutoTokenizer.from_pretrained(resolve_path(paths["pretrained_model"]))
     event_to_id = _event_to_id(examples)
     pretrained_path = resolve_path(paths["pretrained_model"])
     hf_config = AutoConfig.from_pretrained(

@@ -23,6 +23,7 @@ def run_batch_prediction(
     if not str(content).strip():
         raise BatchInputError("请先选择需要评测的 CSV 文件。")
 
+    # Validate CSV fields
     reader = csv.DictReader(io.StringIO(str(content)))
     required_fields = {"id", "text", "label", "event"}
     fieldnames = set(reader.fieldnames or [])
@@ -36,6 +37,21 @@ def run_batch_prediction(
             details.append(f"不支持的列: {', '.join(extra)}")
         raise BatchInputError(f"CSV 文件字段不符合标准，{'；'.join(details)}。")
 
+    # Use temp file + read_examples for consistent cleaning with CLI
+    import tempfile, os
+    content_bytes = str(content).encode("utf-8")
+    tmp = tempfile.NamedTemporaryFile(mode="wb", suffix=".csv", delete=False)
+    try:
+        tmp.write(content_bytes)
+        tmp.close()
+        from src.data.dataset import read_examples
+        examples = read_examples(tmp.name, with_label=True)
+    finally:
+        os.unlink(tmp.name)
+
+    if not examples:
+        raise BatchInputError("CSV 文件中没有可用于评测的文本。")
+
     rows: list[dict] = []
     y_true: list[int] = []
     y_pred: list[int] = []
@@ -43,44 +59,30 @@ def run_batch_prediction(
     pred_dist = {0: 0, 1: 0}
 
     start = time.perf_counter()
-    for index, raw in enumerate(reader):
-        raw_id = str(raw.get("id") or "").strip()
+    for example in examples:
         try:
-            event = normalize_event(raw.get("event"))
+            event = normalize_event(example.event)
         except EventInputError as exc:
-            raise BatchInputError(f"第 {index + 2} 行{str(exc)}") from exc
-        if not raw_id:
-            raise BatchInputError(f"第 {index + 2} 行缺少 id。")
-        text = str(raw.get("text") or "").strip()
-        if not text:
-            raise BatchInputError(f"第 {index + 2} 行缺少 text。")
-        prediction = classifier.predict(text, event=event)
+            raise BatchInputError(f"第 id={example.id} 行{str(exc)}") from exc
+        prediction = classifier.predict(example.text, event=event)
         pred = int(prediction.label)
         prob1 = float(prediction.probabilities.get(1, 0.0))
         pred_dist[pred] = pred_dist.get(pred, 0) + 1
 
-        raw_label = str(raw.get("label") or "").strip()
-        if raw_label == "":
-            raise BatchInputError(f"第 {index + 2} 行缺少 label。")
-        try:
-            label = int(raw_label)
-        except (TypeError, ValueError) as exc:
-            raise BatchInputError(f"第 {index + 2} 行 label 必须是 0 或 1。") from exc
-        if label not in (0, 1):
-            raise BatchInputError(f"第 {index + 2} 行 label 必须是 0 或 1。")
+        label = int(example.label)
         label_dist[label] = label_dist.get(label, 0) + 1
         y_true.append(label)
         y_pred.append(pred)
 
         row = {
-            "id": raw_id,
-            "text": text,
+            "id": example.id,
+            "text": example.text,
             "event": event,
             "pred": pred,
             "prob1": prob1,
+            "label": label,
+            "correct": label == pred,
         }
-        row["label"] = label
-        row["correct"] = label == pred
         rows.append(row)
 
     elapsed_ms = (time.perf_counter() - start) * 1000.0
