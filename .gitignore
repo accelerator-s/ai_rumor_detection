@@ -18,8 +18,8 @@ outputs/metrics/*
 !outputs/metrics/.gitkeep
 
 # Downloaded pretrained models
-models/pretrained/*
-!models/pretrained/.gitkeep
+models/pretrained_roberta/*
+!models/pretrained_roberta/.gitkeep
 
 # Trained model binary artifacts
 *.pt
