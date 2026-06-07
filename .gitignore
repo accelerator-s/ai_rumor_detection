@@ -7,7 +7,7 @@ __pycache__/
 .venv/
 venv/
 .env
-configs/webui_llm.local.yaml
+configs/llm.local.yaml
 
 # Generated model artifacts
 outputs/checkpoints/*

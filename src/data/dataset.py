@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import csv
-import json
 from collections import defaultdict
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
@@ -148,52 +147,6 @@ def overlap_stats(left: Iterable[RumorExample], right: Iterable[RumorExample]) -
     }
 
 
-def export_cleaned_datasets(config: dict) -> dict:
-    paths = config.get("paths", {})
-    train_path = paths.get("train_csv")
-    val_path = paths.get("val_csv")
-    if not train_path or not val_path:
-        raise RuntimeError("配置中缺少 train_csv 或 val_csv，无法导出清洗结果。")
-
-    raw_train = _read_raw_examples(train_path)
-    raw_val = _read_raw_examples(val_path)
-    cleaned_train, train_stats, train_conflicts = clean_examples(raw_train, source=str(train_path), config=config)
-    raw_val_stats = CleaningStats(
-        source=str(val_path),
-        original_count=len(raw_val),
-        cleaned_count=len(raw_val),
-        duplicate_count=0,
-        empty_count=0,
-        conflict_count=0,
-    )
-    overlap = overlap_stats(cleaned_train, raw_val)
-
-    cleaned_train_path = resolve_path(paths.get("cleaned_train_csv", "outputs/cleaned/train.cleaned.csv"))
-    report_path = resolve_path(paths.get("cleaning_report_json", "outputs/cleaned/cleaning_report.json"))
-    cleaned_train_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.parent.mkdir(parents=True, exist_ok=True)
-
-    _write_examples_csv(cleaned_train_path, cleaned_train)
-
-    report = {
-        "train": asdict(train_stats),
-        "val": {
-            **asdict(raw_val_stats),
-            "preserved_raw": True,
-        },
-        "train_conflicts": train_conflicts,
-        "val_conflicts": [],
-        "train_val_overlap": overlap,
-        "output_files": {
-            "cleaned_train_csv": str(cleaned_train_path),
-            "val_csv": str(resolve_path(val_path)),
-            "cleaning_report_json": str(report_path),
-        },
-    }
-    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    return report
-
-
 def _read_raw_examples(path: str | Path, with_label: bool = True) -> list[RumorExample]:
     csv_path = resolve_path(path)
     rows: list[RumorExample] = []
@@ -209,14 +162,6 @@ def _read_raw_examples(path: str | Path, with_label: bool = True) -> list[RumorE
                 )
             )
     return rows
-
-
-def _write_examples_csv(path: Path, examples: list[RumorExample]) -> None:
-    with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["id", "text", "label", "event"])
-        for item in examples:
-            writer.writerow([item.id, item.text, item.label, item.event])
 
 
 def batches(items: list[RumorExample], batch_size: int) -> Iterable[list[RumorExample]]:

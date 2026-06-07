@@ -11,6 +11,6 @@ def batch_predict(payload: dict) -> dict:
     if not isinstance(payload, dict):
         raise ServiceError("请求格式不正确，请刷新页面后重试。")
     try:
-        return run_batch_prediction(state.pipeline.classifier, str(payload.get("content") or ""))
+        return run_batch_prediction(state.pipeline.classifier, str(payload.get("content") or ""), config=state.pipeline.config)
     except BatchInputError as exc:
         raise ServiceError(str(exc)) from exc

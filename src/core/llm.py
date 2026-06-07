@@ -10,8 +10,7 @@ import yaml
 from src.config import resolve_path
 from src.explain.llm_client import OpenAICompatibleClient
 
-EXPLAIN_LLM_CONFIG_PATH = resolve_path("configs/explain_llm.local.yaml")
-LEGACY_WEBUI_LLM_CONFIG_PATH = resolve_path("configs/webui_llm.local.yaml")
+LLM_CONFIG_PATH = resolve_path("configs/llm.local.yaml")
 DEFAULT_LLM_SETTINGS = {
     "base_url": "",
     "api_key": "",
@@ -22,12 +21,6 @@ DEFAULT_LLM_SETTINGS = {
 
 class LlmProviderError(RuntimeError):
     pass
-
-
-def active_explain_llm_config_path():
-    if EXPLAIN_LLM_CONFIG_PATH.exists() or not LEGACY_WEBUI_LLM_CONFIG_PATH.exists():
-        return EXPLAIN_LLM_CONFIG_PATH
-    return LEGACY_WEBUI_LLM_CONFIG_PATH
 
 
 def normalize_llm_settings(settings: dict) -> dict:
@@ -41,18 +34,15 @@ def normalize_llm_settings(settings: dict) -> dict:
 
 
 def load_explain_llm_settings() -> dict:
-    path = active_explain_llm_config_path()
-    if not path.exists():
-        return dict(DEFAULT_LLM_SETTINGS)
-    with path.open("r", encoding="utf-8") as f:
+    with LLM_CONFIG_PATH.open("r", encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
     return normalize_llm_settings(data)
 
 
 def save_explain_llm_settings(settings: dict) -> dict:
     normalized = normalize_llm_settings(settings)
-    EXPLAIN_LLM_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with EXPLAIN_LLM_CONFIG_PATH.open("w", encoding="utf-8") as f:
+    LLM_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with LLM_CONFIG_PATH.open("w", encoding="utf-8") as f:
         yaml.safe_dump(normalized, f, allow_unicode=True, sort_keys=False)
     return normalized
 

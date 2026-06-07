@@ -19,6 +19,7 @@ def run_batch_prediction(
     classifier: Classifier,
     content: str,
     max_detail_rows: int = MAX_DETAIL_ROWS,
+    config: dict | None = None,
 ) -> dict:
     if not str(content).strip():
         raise BatchInputError("请先选择需要评测的 CSV 文件。")
@@ -45,7 +46,7 @@ def run_batch_prediction(
         tmp.write(content_bytes)
         tmp.close()
         from src.data.dataset import read_examples
-        examples = read_examples(tmp.name, with_label=True)
+        examples = read_examples(tmp.name, with_label=True, config=config)
     finally:
         os.unlink(tmp.name)
 

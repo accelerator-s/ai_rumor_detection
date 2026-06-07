@@ -28,7 +28,7 @@ Base URL: `http://127.0.0.1:8000`
 
 ## POST /llm/config
 
-保存本地大模型配置到 `configs/webui_llm.local.yaml`。
+保存本地大模型配置到 `configs/llm.local.yaml`。
 
 ```json
 {

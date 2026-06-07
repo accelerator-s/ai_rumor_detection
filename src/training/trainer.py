@@ -558,7 +558,7 @@ def _write_training_metadata(
         "best_threshold": metrics["threshold"],
         "ensemble_bert_weight": metrics["ensemble_weight"],
         "per_event_thresholds": metrics.get("per_event_thresholds", {}),
-        "tokenizer_path": str(resolve_path(config["paths"].get("pretrained_model", "models/pretrained"))),
+        "tokenizer_path": str(resolve_path(config["paths"].get("pretrained_model", "models/pretrained_roberta"))),
         "internal_validation_metrics": {
             "loss": metrics["loss"],
             "accuracy": metrics["accuracy"],

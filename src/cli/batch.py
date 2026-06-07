@@ -21,7 +21,7 @@ def main() -> None:
     classifier = create_classifier(config)
     classifier.load()
     content = Path(args.csv).read_text(encoding="utf-8")
-    result = run_batch_prediction(classifier, content, max_detail_rows=args.max_detail_rows)
+    result = run_batch_prediction(classifier, content, max_detail_rows=args.max_detail_rows, config=config)
     output = json.dumps(result, ensure_ascii=False, indent=2)
 
     if args.output:
