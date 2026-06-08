@@ -138,7 +138,7 @@ pip install -r requirements.txt
 python -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='cardiffnlp/twitter-roberta-base', local_dir='models/pretrained_roberta')"
 ```
 
-训练分类模型（默认为所有事件独立训练，模型保存到 `models/outputs/event_0/` ~ `event_6/`）：
+训练分类模型（默认为所有事件独立训练）：
 
 ```bash
 python -m src.cli.train --config configs/default.yaml
