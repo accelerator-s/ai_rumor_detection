@@ -10,12 +10,8 @@ venv/
 configs/llm.local.yaml
 
 # Generated model artifacts
-outputs/checkpoints/*
-outputs/predictions/*
-outputs/metrics/*
-!outputs/checkpoints/.gitkeep
-!outputs/predictions/.gitkeep
-!outputs/metrics/.gitkeep
+models/outputs/*
+!models/outputs/.gitkeep
 
 # Downloaded pretrained models
 models/pretrained_roberta/*

@@ -14,7 +14,7 @@ from src.evaluation.metrics import binary_metrics
 from src.training.checkpoint import checkpoint_path
 
 
-def train(config: dict, event_id: str | None = None) -> Path:
+def train(config: dict, event_id: str) -> Path:
     try:
         import joblib
         import torch
@@ -38,10 +38,9 @@ def train(config: dict, event_id: str | None = None) -> Path:
     train_cfg = config["training"]
 
     examples = read_examples(paths["train_csv"], config=config)
-    if event_id is not None:
-        examples = [ex for ex in examples if str(ex.event).strip() == str(event_id)]
-        print(f"filtered to event {event_id}: {len(examples)} samples "
-              f"(rumor={sum(1 for e in examples if e.label==1)}, non-rumor={sum(1 for e in examples if e.label==0)})")
+    examples = [ex for ex in examples if str(ex.event).strip() == str(event_id)]
+    print(f"filtered to event {event_id}: {len(examples)} samples "
+          f"(rumor={sum(1 for e in examples if e.label==1)}, non-rumor={sum(1 for e in examples if e.label==0)})")
     if len(examples) < 4:
         raise RuntimeError(f"训练集样本不足 (event {event_id}): {len(examples)} samples")
 
@@ -158,11 +157,11 @@ def train(config: dict, event_id: str | None = None) -> Path:
     best_ensemble_weight = 0.5
     patience = 0
     early_stopped = False
-    ckpt_name = f"event_{event_id}" if event_id is not None else "best"
-    best_dir = checkpoint_path(paths["checkpoint_dir"], ckpt_name)
-    metrics_dir = resolve_path(paths.get("metrics_dir", "outputs/metrics"))
-    metrics_dir.mkdir(parents=True, exist_ok=True)
-    history_path = metrics_dir / "train_history.json"
+    ckpt_name = f"event_{event_id}"
+    model_dir = resolve_path(paths["model_dir"])
+    model_dir.mkdir(parents=True, exist_ok=True)
+    best_dir = checkpoint_path(model_dir, ckpt_name)
+    history_path = model_dir / "train_history.json"
     history: list[dict] = []
 
     for epoch in range(epochs):
@@ -293,17 +292,13 @@ def train(config: dict, event_id: str | None = None) -> Path:
         val_path = paths.get("val_csv")
         if val_path:
             all_val = read_examples(val_path, config=config)
-            if event_id is not None:
-                tune_examples = [ex for ex in all_val if str(ex.event).strip() == str(event_id)]
-                print(f"recomputing thresholds on val.csv (Event {event_id} only): {len(tune_examples)} samples")
-            else:
-                tune_examples = all_val
-                print(f"recomputing thresholds on val.csv: {len(tune_examples)} samples")
+            tune_examples = [ex for ex in all_val if str(ex.event).strip() == str(event_id)]
+            print(f"recomputing thresholds on val.csv (Event {event_id} only): {len(tune_examples)} samples")
         else:
             tune_examples = examples
     else:
         print("recomputing per-event thresholds on full training set ...")
-        tune_examples = examples if event_id is None else examples
+        tune_examples = examples
 
     model = AutoModelForSequenceClassification.from_pretrained(best_dir, config=hf_config)
     model.to(device)
@@ -558,7 +553,6 @@ def _write_training_metadata(
         "best_threshold": metrics["threshold"],
         "ensemble_bert_weight": metrics["ensemble_weight"],
         "per_event_thresholds": metrics.get("per_event_thresholds", {}),
-        "tokenizer_path": str(resolve_path(config["paths"].get("pretrained_model", "models/pretrained_roberta"))),
         "internal_validation_metrics": {
             "loss": metrics["loss"],
             "accuracy": metrics["accuracy"],

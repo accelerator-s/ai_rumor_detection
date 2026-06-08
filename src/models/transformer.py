@@ -25,7 +25,6 @@ class BertweetClassifier:
         self.threshold = 0.5
         self.ensemble_bert_weight = 0.5
         self.per_event_thresholds: dict[str, float] = {}
-        self.tokenizer_path: Path | None = None
         self._tokenizer: Any = None
         self._model: Any = None
         self._tfidf_model: Any = None
@@ -49,14 +48,11 @@ class BertweetClassifier:
             for event, info in raw_per_event.items()
             if isinstance(info, dict) and "threshold" in info
         }
-        tokenizer_path = resolve_path(metadata["tokenizer_path"])
-        if not tokenizer_path.exists():
-            raise RuntimeError("训练元数据中的分词器路径不存在，请重新训练模型。")
         try:
-            self._tokenizer = AutoTokenizer.from_pretrained(str(tokenizer_path))
+            self._tokenizer = AutoTokenizer.from_pretrained(str(self.model_path))
         except Exception as exc:
             raise RuntimeError(
-                "分词器加载失败。请检查本地预训练模型文件是否完整，并安装 sentencepiece 或 tiktoken 后重试。"
+                "分词器加载失败。请检查模型目录中的分词器文件是否完整，并安装 sentencepiece 或 tiktoken 后重试。"
             ) from exc
         try:
             self._model = AutoModelForSequenceClassification.from_pretrained(str(self.model_path), num_labels=2)
@@ -112,7 +108,7 @@ class BertweetClassifier:
             metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
         except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
             raise RuntimeError("训练元数据无法读取，请重新训练模型。") from exc
-        required_keys = {"best_threshold", "ensemble_bert_weight", "tokenizer_path"}
+        required_keys = {"best_threshold", "ensemble_bert_weight"}
         if not required_keys.issubset(metadata):
             raise RuntimeError("训练元数据不完整，请重新训练模型。")
         return metadata
@@ -129,13 +125,13 @@ def _tfidf_text(text: str, event: str) -> str:
 class PerEventClassifier:
     """Route predictions to event-specific models."""
 
-    def __init__(self, checkpoint_dir: Path, model_cfg: dict) -> None:
-        self.checkpoint_dir = checkpoint_dir
+    def __init__(self, model_dir: Path, model_cfg: dict) -> None:
+        self.model_dir = model_dir
         self.model_cfg = model_cfg
         self.models: dict[str, BertweetClassifier] = {}
 
     def load(self) -> None:
-        for p in sorted(self.checkpoint_dir.glob("event_*")):
+        for p in sorted(self.model_dir.glob("event_*")):
             eid = p.name.split("_")[-1]
             c = BertweetClassifier(model_path=p, model_name=self.model_cfg.get("name", ""),
                                    max_length=int(self.model_cfg.get("max_length", 128)))

@@ -4,9 +4,7 @@ paths:
   train_csv: data/train.csv
   val_csv: data/val.csv
   pretrained_model: models/pretrained_roberta
-  checkpoint_dir: outputs/checkpoints
-  metrics_dir: outputs/metrics
-  predictions_dir: outputs/predictions
+  model_dir: models/outputs
 
 data_cleaning:
   enabled: true

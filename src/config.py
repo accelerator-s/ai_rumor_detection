@@ -34,10 +34,9 @@ def resolve_path(path: str | Path) -> Path:
 
 def ensure_output_dirs(config: dict[str, Any]) -> None:
     paths = config.get("paths", {})
-    for key in ("checkpoint_dir", "metrics_dir", "predictions_dir"):
-        value = paths.get(key)
-        if value:
-            resolve_path(value).mkdir(parents=True, exist_ok=True)
+    value = paths.get("model_dir")
+    if value:
+        resolve_path(value).mkdir(parents=True, exist_ok=True)
 
 
 def merge_dict(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
