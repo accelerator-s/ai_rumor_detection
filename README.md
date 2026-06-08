@@ -101,8 +101,20 @@ pip install -r requirements.txt
 下载已经训练好的模型到 `models/outputs/` 目录：
 
 ```bash
-# TODO: 在这里补充已训练模型下载指令
+python -c "import urllib.request,urllib.error,os
+B='https://model.files.accelerators.site/KI4mU3jG0eX8mI1g'
+F=['config.json','tokenizer.json','tokenizer_config.json','training_metadata.json','model.safetensors','tfidf_model.joblib']
+def g(i,f):
+    u=f'{B}/event_{i}/{f}'; p=f'models/outputs/event_{i}/{f}'
+    os.makedirs(os.path.dirname(p),exist_ok=True)
+    try:
+        urllib.request.urlretrieve(u,p); print('OK  ',p)
+    except urllib.error.HTTPError as e:
+        print('SKIP',u,e.code)
+[g(i,f) for i in range(7) for f in F]"
 ```
+
+Event 2 没有 `tfidf_model.joblib`，命令会自动跳过对应的 404，属正常现象。
 
 启动 WebUI：
 
